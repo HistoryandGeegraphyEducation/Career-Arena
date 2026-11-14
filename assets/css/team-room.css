@@ -132,3 +132,5 @@
 .is-mobile-controller .topbar .nav{display:none}
 .is-mobile-controller .room-wrap{padding-top:12px}
 .is-mobile-controller #controllerView{margin-top:0}
+
+.reflex-option.selected{border:2px solid #f5c45c;background:#174b78;box-shadow:0 0 0 2px rgba(245,196,92,.18)}.reflex-phase-status{margin:0;padding:10px 12px;border-radius:10px;background:#0b2a5a;color:#d8efff;font-weight:800;font-variant-numeric:tabular-nums}.reflex-captain-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.reflex-captain-actions button{min-height:48px}@media(max-width:420px){.reflex-captain-actions{grid-template-columns:1fr}}
