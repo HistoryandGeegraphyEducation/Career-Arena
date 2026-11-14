@@ -37,7 +37,7 @@ function approveJoin(id){
 }
 function rejectJoin(id){
  const request=pendingRequests.get(id);if(!request)return;
- pendingRequests.delete(id);renderPending();
+ pendingRequests.delete(id);renderPending();broadcast();
  send(request.conn,{type:'join-error',message:'Giáo viên chưa chấp nhận yêu cầu tham gia phòng. Hãy liên hệ giáo viên.'});
  setTimeout(()=>{try{request.conn.close()}catch(e){}},250);
 }
@@ -101,7 +101,7 @@ function onMessage(conn,data){
    send(conn,{type:'join-pending',message:'Yêu cầu tham gia đã được cập nhật. Vui lòng chờ giáo viên xác nhận.'});return;
   }
   pendingRequests.set(conn.peer,{conn,team:i,name,requestedAt:Date.now()});
-  renderPending();
+  renderPending();broadcast();
   send(conn,{type:'join-pending',message:'Yêu cầu đã được gửi tới giáo viên. Vui lòng chờ xác nhận.'});
  }
  if(data.type==='captain-vote'&&Number.isInteger(conn.__team)&&captainElection.open&&!captainElection.closed){
