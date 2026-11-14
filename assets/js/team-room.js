@@ -188,8 +188,8 @@ function startStudent(){
  $('sendAnswer').addEventListener('click',()=>{
   if(!connection||!connection.open){$('sendStatus').textContent='Chưa kết nối với phòng đội.';return}
   const choice=document.querySelector('input[name="teamChoice"]:checked'),text=$('studentAnswer').value.trim();
-  if(choice){send(connection,{type:'team-response',kind:'choice',option:Number(choice.value)});$('sendStatus').textContent='Đang gửi lựa chọn…';return}
   if(!$('studentTextWrap').classList.contains('hidden')&&text){send(connection,{type:'team-response',kind:'text',text});$('studentAnswer').value='';$('sendStatus').textContent='Đang gửi ý kiến…';return}
+  if(choice){send(connection,{type:'team-response',kind:'choice',option:Number(choice.value)});$('sendStatus').textContent='Đang gửi lựa chọn…';return}
   $('sendStatus').textContent='Hãy chọn một phương án hoặc nhập ý kiến trước khi gửi.';
  })
 }
@@ -199,7 +199,9 @@ function renderStudentState(data){if(!data||data.type!=='state')return;const tea
  if(q.type!=='text'&&Array.isArray(q.options))q.options.forEach((option,i)=>{const label=document.createElement('label');label.className='student-choice';const radio=document.createElement('input');radio.type='radio';radio.name='teamChoice';radio.value=String(i);const span=document.createElement('span');span.textContent=option;label.append(radio,span);list.append(label)});
  $('studentChoiceList').classList.toggle('hidden',q.type==='text'||!q.options?.length);$('studentTextWrap').classList.toggle('hidden',q.type==='choice');
  const final=data.teamFinals?.[teamIndex];$('sendAnswer').disabled=!!final||!q.text;$('sendAnswer').textContent=final?'ĐỘI ĐÃ CHỐT ĐÁP ÁN':'GỬI Ý KIẾN VÀO PHÒNG ĐỘI';
- const tally=data.teamVotes?.[teamIndex]||{};$('studentTeamTally').textContent='Đội đã gửi '+Object.keys(tally).length+' lượt lựa chọn.'+(final?' Đáp án chung: '+final.answer:' Giáo viên sẽ quyết định đáp án cuối cùng.');
+ const tally=data.teamVotes?.[teamIndex]||{},ballotCount=Object.keys(tally).length,teamMessages=data.teamTexts?.[teamIndex]||[];
+ const recent=teamMessages.slice(-4).map(item=>item.name+': '+item.text).join(' | ');
+ $('studentTeamTally').textContent='Phòng đội: '+ballotCount+' thành viên đã chọn phương án.'+(recent?' Ý kiến mới: '+recent:'')+(final?' Đáp án chung: '+final.answer:' Giáo viên sẽ quyết định đáp án cuối cùng.');
 }
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
 function publishQuestion(){const q=$('discussionQuestion').value.trim();if(!q){$('questionStatus').textContent='Hãy nhập nội dung câu hỏi.';return}questionType=$('discussionType').value;questionOptions=$('discussionOptions').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,8);if(questionType!=='text'&&questionOptions.length<2){$('questionStatus').textContent='Hãy nhập ít nhất hai phương án, mỗi phương án một dòng.';return}currentQuestion=q;teamVotes=[{}, {}, {}, {}];teamTexts=[[],[],[],[]];teamFinals=[null,null,null,null];$('questionStatus').textContent='Đã gửi câu hỏi đến các phòng đội.';broadcast()}
