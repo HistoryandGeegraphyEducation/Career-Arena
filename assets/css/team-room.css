@@ -56,3 +56,17 @@
 
 /* Keep the QRCode.js canvas hidden; its generated image is the single visible QR layer. */
 .qr-box canvas,.qr-large canvas,.controller-qr canvas{display:none!important}
+
+
+/* QR scan reliability: render the native canvas and preserve a four-module quiet zone. */
+.qr-box,.controller-qr{box-sizing:border-box!important;padding:28px!important;overflow:hidden}
+.qr-large{box-sizing:border-box!important;padding:44px!important}
+.qr-box img,.qr-large img,.controller-qr img{display:none!important}
+.qr-box canvas,.qr-large canvas,.controller-qr canvas{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  object-fit:contain!important;
+  image-rendering:pixelated;
+}
