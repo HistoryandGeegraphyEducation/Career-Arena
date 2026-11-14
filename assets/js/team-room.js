@@ -125,8 +125,69 @@ function onMessage(conn,data){
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
 function makeRoomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const bytes=crypto.getRandomValues(new Uint8Array(8));return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')}
-function attachIncoming(peerServer,isController){peerServer.on('connection',conn=>{if(isController){conn.__controller=true;controllerConnections.set(conn.peer,conn);if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Đã nhận yêu cầu từ điện thoại · Đang thiết lập kênh dữ liệu…'}else connections.set(conn.peer,conn);conn.on('open',()=>{if(isController){if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Điện thoại điều khiển: đã đồng bộ';send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))})}else send(conn,{type:'room-ready'})});conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}if($('controllerLinkStatus'))$('controllerLinkStatus').textContent=controllerConnections.size?'Điện thoại điều khiển: '+controllerConnections.size+' thiết bị đang kết nối':'Điện thoại điều khiển: chưa kết nối';broadcast()});conn.on('error',e=>{if($('controllerLinkStatus')&&isController)$('controllerLinkStatus').textContent='Lỗi kênh điều khiển: '+(e?.type||e?.message||'không xác định');connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}broadcast()})})}
-function startTeacher(){
+function attachIncoming(peerServer,isController){
+ peerServer.on('connection',conn=>{
+  if(isController){
+   conn.__controller=true;
+   controllerConnections.set(conn.peer,conn);
+   const status=$('controllerLinkStatus');
+   const pc=conn.peerConnection||null;
+   let opened=false;
+   let hostTimer=setTimeout(()=>{
+    if(opened||conn.open)return;
+    const p=conn.peerConnection||pc;
+    const detail=p?'ICE '+p.iceConnectionState+' · Peer '+p.connectionState:'Chưa lấy được trạng thái PeerConnection';
+    if(status)status.textContent='Điện thoại đã gửi yêu cầu nhưng kênh dữ liệu chưa mở · '+detail;
+   },15000);
+   const updateIce=()=>{
+    const p=conn.peerConnection||pc;
+    if(!status||!p||opened)return;
+    const ice=p.iceConnectionState||'unknown';
+    if(ice==='failed'||ice==='disconnected'){
+     status.textContent='WebRTC '+ice+' · Đang chờ thiết lập lại kênh dữ liệu…';
+    }
+   };
+   if(pc){
+    pc.addEventListener('iceconnectionstatechange',updateIce);
+    pc.addEventListener('connectionstatechange',updateIce);
+   }
+   if(status)status.textContent='Đã nhận yêu cầu từ điện thoại · Đang thiết lập kênh dữ liệu…';
+   conn.on('open',()=>{
+    opened=true;
+    clearTimeout(hostTimer);
+    if(status)status.textContent='Điện thoại điều khiển: đã đồng bộ';
+    send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});
+   });
+   conn.on('data',d=>onMessage(conn,d));
+   conn.on('close',()=>{
+    clearTimeout(hostTimer);
+    if(pc){pc.removeEventListener('iceconnectionstatechange',updateIce);pc.removeEventListener('connectionstatechange',updateIce)}
+    connections.delete(conn.peer);controllerConnections.delete(conn.peer);
+    if(status)status.textContent=controllerConnections.size?'Điện thoại điều khiển: '+controllerConnections.size+' thiết bị đang kết nối':'Điện thoại điều khiển: chưa kết nối';
+    broadcast();
+   });
+   conn.on('error',e=>{
+    clearTimeout(hostTimer);
+    if(status)status.textContent='Lỗi kênh điều khiển: '+(e?.type||e?.message||'không xác định');
+    connections.delete(conn.peer);controllerConnections.delete(conn.peer);broadcast();
+   });
+  }else{
+   connections.set(conn.peer,conn);
+   conn.on('open',()=>send(conn,{type:'room-ready'}));
+   conn.on('data',d=>onMessage(conn,d));
+   conn.on('close',()=>{
+    connections.delete(conn.peer);pendingRequests.delete(conn.peer);
+    teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));
+    renderPending();broadcast();
+   });
+   conn.on('error',e=>{
+    connections.delete(conn.peer);pendingRequests.delete(conn.peer);
+    teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));
+    renderPending();broadcast();
+   });
+  }
+ });
+}function startTeacher(){
  if(typeof Peer==='undefined'){$('connectionStatus').textContent='Không tải được thư viện kết nối';return}
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';
  const studentCode=makeRoomCode(),teacherCode=makeRoomCode();
@@ -242,7 +303,7 @@ function startController(){
    clearConnectTimer();
    connectTimer=setTimeout(()=>{
     if(connection===current&&!current.open){
-     setControllerStatus('Không nhận được phản hồi từ máy tính chủ phòng. Kiểm tra mã GV và trạng thái phòng trên laptop.',false);
+     const p=current.peerConnection;const detail=p?'ICE '+(p.iceConnectionState||'unknown')+' · Peer '+(p.connectionState||'unknown'):'chưa có trạng thái PeerConnection';setControllerStatus('Hết thời gian mở kênh dữ liệu ('+detail+'). Laptop đã nhận yêu cầu nhưng chưa hoàn tất WebRTC.',false);
      try{current.close()}catch(e){}
      scheduleControllerReconnect();
     }
