@@ -10,20 +10,18 @@ const show=id=>$(id).classList.remove('hidden'),hide=id=>$(id).classList.add('hi
 function renderPending(){
  const root=$('pendingRequests'),count=$('pendingCount');
  if(!root||!count)return;
- const mode=$('approvalMode');if(mode)mode.value=approvalMode;
- count.textContent=pendingRequests.size+' yêu cầu';
+ const connected=teams.reduce((n,t)=>n+t.members.length,0);
+ count.textContent=connected+' thành viên';
  root.replaceChildren();
- if(!pendingRequests.size){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có yêu cầu tham gia.';root.append(p);return}
- pendingRequests.forEach((request,id)=>{
-  const card=document.createElement('article');card.className='pending-card';
-  const info=document.createElement('div');info.className='pending-info';
-  const name=document.createElement('strong');name.textContent=request.name;
-  const detail=document.createElement('span');detail.textContent=(teams[request.team]?.name||'Đội '+(request.team+1))+' · Đang chờ giáo viên xác nhận';
-  info.append(name,detail);
-  const actions=document.createElement('div');actions.className='pending-actions';
-  const approve=document.createElement('button');approve.type='button';approve.className='btn pending-approve';approve.textContent='Cho vào phòng';approve.addEventListener('click',()=>approveJoin(id));
-  const reject=document.createElement('button');reject.type='button';reject.className='btn ghost pending-reject';reject.textContent='Từ chối';reject.addEventListener('click',()=>rejectJoin(id));
-  actions.append(approve,reject);card.append(info,actions);root.append(card);
+ if(!connected){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có học sinh kết nối.';root.append(p);return}
+ teams.forEach(team=>{
+  team.members.forEach(member=>{
+   const row=document.createElement('article');row.className='pending-card';
+   const info=document.createElement('div');info.className='pending-info';
+   const name=document.createElement('strong');name.textContent=member.name;
+   const detail=document.createElement('span');detail.textContent=team.name+' · Đã vào phòng';
+   info.append(name,detail);row.append(info);root.append(row);
+  });
  });
 }
 function approveJoin(id){
@@ -100,7 +98,7 @@ function onMessage(conn,data){
   if(teams.some(t=>t.members.some(m=>m.id===conn.peer))){send(conn,{type:'joined',state:state(),team:teams.findIndex(t=>t.members.some(m=>m.id===conn.peer)),name});return}
   if(pendingRequests.has(conn.peer)){
    const existing=pendingRequests.get(conn.peer);existing.team=i;existing.name=name;renderPending();
-   send(conn,{type:'join-pending',message:'Yêu cầu tham gia đã được cập nhật. Vui lòng chờ giáo viên xác nhận.'});return;
+   send(conn,{type:'join-error',message:'Kết nối đang được xử lý. Hãy thử lại sau vài giây.'});return;
   }
   pendingRequests.set(conn.peer,{conn,team:i,name,requestedAt:Date.now()});
   approveJoin(conn.peer);return;
@@ -244,12 +242,20 @@ function startController(){
 function renderController(s,pending){
  if(!s)return;
  $('controllerClock').textContent=String(Math.floor(s.seconds/60)).padStart(2,'0')+':'+String(s.seconds%60).padStart(2,'0');
- $('controllerRound').value=s.currentRound;$('controllerApprovalMode').value='auto';
+ const round=$('controllerRound');if(round)round.value=s.currentRound;
  $('controllerScoreboard').replaceChildren();
  (s.teams||[]).forEach(t=>{const card=document.createElement('article');card.className='score-card';const h=document.createElement('h3');h.textContent=t.name;const score=document.createElement('div');score.className='score';score.textContent=t.score+' điểm';const members=document.createElement('small');members.textContent=t.members.length+' thành viên';card.append(h,score,members);$('controllerScoreboard').append(card)});
- $('controllerPendingCount').textContent=pending.length+' yêu cầu';$('controllerPending').replaceChildren();
- if(!pending.length){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có yêu cầu tham gia.';$('controllerPending').append(p)}
- pending.forEach(r=>{const row=document.createElement('article');row.className='pending-card';const info=document.createElement('div');info.className='pending-info';const name=document.createElement('strong');name.textContent=r.name;const team=document.createElement('span');team.textContent=s.teams[r.team]?.name||'Đội '+(r.team+1);info.append(name,team);const actions=document.createElement('div');actions.className='pending-actions';[['Cho vào phòng','approve'],['Từ chối','reject']].forEach(([label,type])=>{const b=document.createElement('button');b.className='btn '+(type==='reject'?'ghost':'pending-approve');b.textContent=label;b.addEventListener('click',()=>send(connection,{type:'control-action',action:{type,id:r.id}}));actions.append(b)});row.append(info,actions);$('controllerPending').append(row)});
+ const joined=(s.teams||[]).reduce((n,t)=>n+(t.members||[]).length,0);
+ $('controllerPendingCount').textContent=joined+' thành viên';
+ $('controllerPending').replaceChildren();
+ if(!joined){const p=document.createElement('p');p.className='muted';p.textContent='Học sinh sẽ xuất hiện tại đây ngay sau khi nhập mã phòng và kết nối.';$('controllerPending').append(p);return}
+ (s.teams||[]).forEach(team=>(team.members||[]).forEach(member=>{
+  const row=document.createElement('article');row.className='pending-card';
+  const info=document.createElement('div');info.className='pending-info';
+  const name=document.createElement('strong');name.textContent=member.name;
+  const detail=document.createElement('span');detail.textContent=team.name+' · Đã vào phòng';
+  info.append(name,detail);row.append(info);$('controllerPending').append(row);
+ }));
 }
 function renderStudentState(data){if(!data||data.type!=='state')return;renderReflexStudent(data);const teamIndex=Number.isInteger(selfTeamIndex)?selfTeamIndex:Number($('studentTeam').value);const team=data.teams?.[teamIndex];const ownMember=(team?.members||[]).find(m=>m.id===peer?.id);if(ownMember)selfName=ownMember.name;$('studentIdentityName').textContent=selfName||$('studentName').value||'Học sinh';const isCaptain=data.captains?.[teamIndex]===peer?.id;$('studentPlay').classList.toggle('is-captain',isCaptain);$('studentPlay').classList.toggle('is-member',!isCaptain);$('studentRoleBadge').textContent=isCaptain?'ĐỘI TRƯỞNG':'THÀNH VIÊN';$('studentIdentityBar').classList.toggle('captain-identity-bar',isCaptain);if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.';
  const publicRoster=$('publicCaptainRoster');if(publicRoster){publicRoster.replaceChildren();(data.teams||[]).forEach((t,i)=>{const line=document.createElement('p');const leader=t.members.find(m=>m.id===data.captains?.[i]);line.textContent=t.name+': '+(leader?leader.name:'Chưa có đội trưởng');publicRoster.append(line)})}const q=data.question||{};$('studentQuestion').textContent=q.text||'Đang chờ giáo viên gửi câu hỏi…'; const election=data.captainElection||{};$('captainElection').classList.toggle('hidden',!election.open);
