@@ -35,3 +35,4 @@
 .student-choice{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #398bd1;border-radius:10px;background:#0b2a5a;color:#fff}
 .student-choice input{width:18px;height:18px;accent-color:#27a3ef}.student-team-tally{color:#b8d7f4;font-size:.9rem}
 @media(max-width:680px){.discussion-fields,.team-consensus{grid-template-columns:1fr}.consensus-actions button{width:100%}}
+.captain-election,.captain-submit-panel{display:grid;gap:10px;padding:14px;border:1px solid #e0b84e;border-radius:14px;background:#132d55;color:#fff}.captain-candidates{display:grid;gap:7px}.captain-identity{padding:9px 12px;border-radius:9px;background:#164a38;color:#bdf5d9;font-weight:800}.race-results{display:grid;gap:9px}.race-result{padding:12px;border:1px solid #398bd1;border-radius:12px;background:#071d4c;color:#fff}@media(max-width:600px){.race-result{overflow-wrap:anywhere}}
