@@ -43,3 +43,9 @@
 #controllerView .controller-grid,#controllerView .discussion-setup{margin-top:14px}
 #controllerView .section-head{margin-top:22px}
 @media(max-width:600px){.controller-pair,.controller-grid{grid-template-columns:1fr}.controller-qr{margin:auto}.controller-pair{text-align:center}#controllerView .scoreboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.approval-mode{display:inline-flex;align-items:center;gap:8px;color:#c7def8;font-size:.86rem}
+.approval-mode select{max-width:190px;border:1px solid #398bd1;background:#061b49;color:#fff;border-radius:10px;padding:9px}
+.captain-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px;margin-top:12px}
+.captain-roster p{margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#061b49;color:#e7f5ff}
+@media(max-width:600px){.captain-roster{grid-template-columns:1fr}.approval-mode{flex-wrap:wrap}}
