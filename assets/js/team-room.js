@@ -174,9 +174,9 @@ function startStudent(){
       if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
       if(data&&data.type==='join-pending'){
        clearJoinTimer();
-       $('joinError').textContent=data.message||'Đang hoàn tất tham gia phòng…';
-       $('studentStatus').textContent='Chờ duyệt';
-       $('studentStatus').style.background='#805b13';
+       $('joinError').textContent='Đang hoàn tất tham gia phòng…';
+       $('studentStatus').textContent='Đang kết nối';
+       $('studentStatus').style.background='';
        return;
       }
       if(data&&data.type==='room-ready')return;
@@ -244,7 +244,7 @@ function startController(){
 function renderController(s,pending){
  if(!s)return;
  $('controllerClock').textContent=String(Math.floor(s.seconds/60)).padStart(2,'0')+':'+String(s.seconds%60).padStart(2,'0');
- $('controllerRound').value=s.currentRound;$('controllerApprovalMode').value=s.'auto';
+ $('controllerRound').value=s.currentRound;$('controllerApprovalMode').value='auto';
  $('controllerScoreboard').replaceChildren();
  (s.teams||[]).forEach(t=>{const card=document.createElement('article');card.className='score-card';const h=document.createElement('h3');h.textContent=t.name;const score=document.createElement('div');score.className='score';score.textContent=t.score+' điểm';const members=document.createElement('small');members.textContent=t.members.length+' thành viên';card.append(h,score,members);$('controllerScoreboard').append(card)});
  $('controllerPendingCount').textContent=pending.length+' yêu cầu';$('controllerPending').replaceChildren();
