@@ -54,8 +54,13 @@ function onMessage(conn,data){
   const i=Number(data.team),name=String(data.name||'Thành viên').trim().slice(0,32)||'Thành viên';
   if(!Number.isInteger(i)||!teams[i]){send(conn,{type:'join-error',message:'Đội được chọn không hợp lệ. Hãy tải lại trang và chọn đội khác.'});return}
   if(teams.some(t=>t.members.some(m=>m.id===conn.peer))){send(conn,{type:'joined',state:state(),team:teams.findIndex(t=>t.members.some(m=>m.id===conn.peer)),name});return}
+  if(pendingRequests.has(conn.peer)){
+   const existing=pendingRequests.get(conn.peer);existing.team=i;existing.name=name;renderPending();
+   send(conn,{type:'join-pending',message:'Yêu cầu tham gia đã được cập nhật. Vui lòng chờ giáo viên xác nhận.'});return;
+  }
   pendingRequests.set(conn.peer,{conn,team:i,name,requestedAt:Date.now()});
   renderPending();
+  send(conn,{type:'join-pending',message:'Yêu cầu đã được gửi tới giáo viên. Vui lòng chờ xác nhận.'});
  }
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
@@ -87,15 +92,20 @@ function startStudent(){
      connection=peer.connect(hostId,{reliable:true});
      joinTimer=setTimeout(()=>failJoin('Không nhận được phản hồi từ phòng giáo viên. Hãy kiểm tra giáo viên đã tạo phòng và đang giữ trang phòng mở.'),15000);
      connection.on('open',()=>{
-      $('joinError').textContent='Đã nối kênh với giáo viên. Đang xác nhận phòng…';
+      if(joinSent)return;
+      joinSent=true;
+      $('joinError').textContent='Đã kết nối với phòng. Đang gửi yêu cầu giáo viên duyệt…';
+      send(connection,{type:'join',name,team});
      });
      connection.on('data',data=>{
-      if(data&&data.type==='room-ready'&&!joinSent){
-       joinSent=true;
-       $('joinError').textContent='Phòng đã phản hồi. Đang tự động đưa bạn vào đội…';
-       send(connection,{type:'join',name,team});
+      if(data&&data.type==='join-pending'){
+       clearJoinTimer();
+       $('joinError').textContent=data.message||'Đã gửi yêu cầu. Vui lòng chờ giáo viên xác nhận.';
+       $('studentStatus').textContent='Chờ duyệt';
+       $('studentStatus').style.background='#805b13';
        return;
       }
+      if(data&&data.type==='room-ready')return;
       if(data&&data.type==='joined'){
        clearJoinTimer();joining=false;
        hide('joinForm');show('studentPlay');
