@@ -163,7 +163,7 @@ function startStudent(){
      connection.on('open',()=>{
       if(joinSent)return;
       joinSent=true;
-      $('joinError').textContent='Đã kết nối với phòng. Đang gửi yêu cầu giáo viên duyệt…';
+      $('joinError').textContent='Đã kết nối với phòng. Đang hoàn tất tham gia…';
       send(connection,{type:'join',name,team});
      });
      connection.on('data',data=>{
@@ -174,7 +174,7 @@ function startStudent(){
       if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
       if(data&&data.type==='join-pending'){
        clearJoinTimer();
-       $('joinError').textContent=data.message||'Đã gửi yêu cầu. Vui lòng chờ giáo viên xác nhận.';
+       $('joinError').textContent=data.message||'Đang hoàn tất tham gia phòng…';
        $('studentStatus').textContent='Chờ duyệt';
        $('studentStatus').style.background='#805b13';
        return;
