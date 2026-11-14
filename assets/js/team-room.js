@@ -15,7 +15,15 @@ function renderTeacher(){
 function award(id,points){if(awarded.has(id))return;const item=submissions.find(s=>s.id===id);if(!item)return;teams[item.team].score+=points;awarded.add(id);broadcast()}
 function onMessage(conn,data){
  if(!data||typeof data!=='object')return;
- if(data.type==='join'){const i=Number(data.team);if(!Number.isInteger(i)||!teams[i])return;const member={id:conn.peer,name:String(data.name||'Thành viên').slice(0,32)};teams.forEach(t=>t.members=t.members.filter(m=>m.id!==member.id));teams[i].members.push(member);conn.__team=i;conn.__name=member.name;broadcast();send(conn,state())}
+ if(data.type==='join'){
+  const i=Number(data.team);
+  if(!Number.isInteger(i)||!teams[i]){send(conn,{type:'join-error',message:'Đội được chọn không hợp lệ. Hãy tải lại trang và chọn đội khác.'});return}
+  const member={id:conn.peer,name:String(data.name||'Thành viên').trim().slice(0,32)||'Thành viên'};
+  teams.forEach(t=>t.members=t.members.filter(m=>m.id!==member.id));
+  teams[i].members.push(member);conn.__team=i;conn.__name=member.name;
+  broadcast();
+  send(conn,{type:'joined',state:state(),team:i,name:member.name});
+ }
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
 function startTeacher(){
@@ -46,13 +54,22 @@ function startStudent(){
      connection=peer.connect(hostId,{reliable:true});
      joinTimer=setTimeout(()=>failJoin('Không nhận được phản hồi từ phòng giáo viên. Hãy kiểm tra giáo viên đã tạo phòng và đang giữ trang phòng mở.'),15000);
      connection.on('open',()=>{
-      clearJoinTimer();joining=false;
+      $('joinError').textContent='Đã kết nối. Đang tự động tham gia đội…';
       send(connection,{type:'join',name,team});
-      hide('joinForm');show('studentPlay');
-      $('studentTeamName').textContent=$('studentTeam').selectedOptions[0].textContent;
-      $('studentStatus').textContent='Đã kết nối';$('studentStatus').style.background='#0c633d';
      });
-     connection.on('data',renderStudentState);
+     connection.on('data',data=>{
+      if(data&&data.type==='joined'){
+       clearJoinTimer();joining=false;
+       hide('joinForm');show('studentPlay');
+       $('studentTeamName').textContent=data.state?.teams?.[data.team]?.name||$('studentTeam').selectedOptions[0].textContent;
+       $('studentStatus').textContent='Đã vào phòng';$('studentStatus').style.background='#0c633d';
+       $('joinError').textContent='';
+       if(data.state)renderStudentState(data.state);
+       return;
+      }
+      if(data&&data.type==='join-error'){failJoin(data.message||'Không thể tham gia phòng.');return}
+      renderStudentState(data);
+     });
      connection.on('close',()=>{
       clearJoinTimer();joining=false;
       $('studentStatus').textContent='Mất kết nối';$('studentStatus').style.background='#71342c';
