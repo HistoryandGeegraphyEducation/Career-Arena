@@ -38,9 +38,19 @@
         <label class="field"><span>Hoạt động hiện tại</span><select id="currentRound"><option>Khởi động</option><option>Vòng 1 – Phản xạ</option><option>Vòng 2 – Liên kết</option><option>Vòng 3 – Bứt phá</option><option>Luyện tập</option><option>Vận dụng</option></select></label>
         <div class="timer-box"><span class="eyebrow">ĐỒNG HỒ PHÒNG CHƠI</span><div id="roomClock" class="timer">02:00</div><div class="row"><button id="timerStart" class="btn secondary">Bắt đầu</button><button id="timerReset" class="btn ghost">Đặt lại</button></div></div>
       </div>
+      <div class="section-head"><h2>Câu hỏi thảo luận của giáo viên</h2></div>
+      <div class="discussion-setup">
+        <label class="field"><span>Nội dung câu hỏi</span><textarea id="discussionQuestion" rows="3" maxlength="1200" placeholder="Nhập câu hỏi hoặc nhiệm vụ cho các đội..."></textarea></label>
+        <div class="discussion-fields">
+          <label class="field"><span>Hình thức trả lời</span><select id="discussionType"><option value="choice">Trắc nghiệm</option><option value="text">Văn bản tự do</option><option value="both" selected>Trắc nghiệm và văn bản</option></select></label>
+          <label class="field"><span>Các phương án (mỗi phương án một dòng)</span><textarea id="discussionOptions" rows="3" maxlength="500" placeholder="A. ...&#10;B. ...&#10;C. ...&#10;D. ..."></textarea></label>
+        </div>
+        <div class="row"><button id="publishQuestion" class="btn secondary" type="button">GỬI CÂU HỎI ĐẾN CÁC ĐỘI</button><span id="questionStatus" class="muted" aria-live="polite">Chưa có câu hỏi đang mở.</span></div>
+      </div>
       <div class="section-head"><h2>Yêu cầu tham gia</h2><span id="pendingCount" class="pill">0 yêu cầu</span></div><div id="pendingRequests" class="pending-requests"><p class="muted">Chưa có yêu cầu tham gia.</p></div>
       <div class="section-head"><h2>Bảng điểm</h2><span id="memberCount" class="pill">0 thành viên</span></div><div id="scoreboard" class="scoreboard"></div>
-      <div class="section-head"><h2>Câu trả lời của các đội</h2><span id="submissionCount" class="muted">0 lượt gửi</span></div><div id="submissions" class="submissions"><p class="muted">Chưa có câu trả lời được gửi.</p></div>
+      <div class="section-head"><h2>Phòng thảo luận và kết quả từng đội</h2><span class="muted">Giáo viên quyết định chốt</span></div><div id="teamConsensus" class="team-consensus"><p class="muted">Chưa có câu hỏi thảo luận.</p></div>
+      <div class="section-head"><h2>Lịch sử câu trả lời</h2><span id="submissionCount" class="muted">0 lượt gửi</span></div><div id="submissions" class="submissions"><p class="muted">Chưa có câu trả lời được gửi.</p></div>
       <p class="room-note">Giáo viên chấm và cộng điểm sau khi xem câu trả lời. Mỗi lượt gửi chỉ được cộng điểm một lần. Không có chức năng trừ điểm.</p>
     </section>
     <section id="studentView" class="panel content hidden">
@@ -53,8 +63,11 @@
       <div id="studentPlay" class="hidden">
         <div class="student-summary"><div><span class="eyebrow">ĐỘI CỦA BẠN</span><h2 id="studentTeamName">Đội 1</h2></div><div><span class="eyebrow">ĐIỂM HIỆN TẠI</span><div id="studentScore" class="score">0</div></div></div>
         <div class="question"><span class="eyebrow">HOẠT ĐỘNG ĐANG DIỄN RA</span><h3 id="studentRound">Khởi động</h3><p id="studentTimer" class="muted">Chờ giáo viên bắt đầu.</p></div>
-        <label class="field"><span>Câu trả lời / nội dung thảo luận của đội</span><textarea id="studentAnswer" rows="5" maxlength="2000" placeholder="Nhập câu trả lời của đội tại đây..."></textarea></label>
-        <button id="sendAnswer" class="btn">GỬI CÂU TRẢ LỜI</button><p id="sendStatus" class="muted" aria-live="polite"></p>
+        <section class="student-discussion"><h3 id="studentQuestion">Đang chờ giáo viên gửi câu hỏi…</h3><div id="studentChoiceList" class="student-choice-list"></div>
+          <label class="field" id="studentTextWrap"><span>Ý kiến / câu trả lời bằng văn bản</span><textarea id="studentAnswer" rows="4" maxlength="2000" placeholder="Nhập ý kiến của bạn..."></textarea></label>
+          <button id="sendAnswer" class="btn">GỬI Ý KIẾN VÀO PHÒNG ĐỘI</button><p id="sendStatus" class="muted" aria-live="polite"></p>
+          <div id="studentTeamTally" class="student-team-tally"></div>
+        </section>
       </div>
     </section>
     <section id="unsupported" class="panel content hidden"><h2>Không tìm thấy phòng chơi</h2><p class="muted">Hãy quét lại mã QR do giáo viên đang điều khiển phòng cung cấp.</p><a class="btn" href="room.html">Về trang tạo phòng</a></section>
@@ -75,6 +88,6 @@
   </div>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="assets/js/team-room.js?v=join-ack-qr-clean-20261114"></script>
+  <script src="assets/js/team-room.js?v=team-discussion-teacher-finalize-20261114"></script>
 </body>
 </html>
