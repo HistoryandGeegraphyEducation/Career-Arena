@@ -1,0 +1,1 @@
+document.querySelectorAll('.card').forEach((c,i)=>c.style.animationDelay=(i*.07)+'s');
