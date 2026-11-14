@@ -3,9 +3,45 @@
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),hostId=params.get('join'),controllerHost=params.get('control');
 const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}],iceTransportPolicy:'all',sdpSemantics:'unified-plan'}};
 let peer=null,teacherPeer=null,connection=null,timer=null,controllerRetryTimer=null,controllerConnected=false,lastControllerState=null,selfName='',selfTeamIndex=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='auto',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
+const SUPABASE_CONFIG=window.CAREER_ARENA_SUPABASE||{};
+let supabaseClient=null,controllerChannel=null;
+function getSupabaseClient(){
+ if(supabaseClient)return supabaseClient;
+ if(!SUPABASE_CONFIG.url||!SUPABASE_CONFIG.publishableKey||!window.supabase?.createClient)return null;
+ supabaseClient=window.supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.publishableKey);
+ return supabaseClient;
+}
+function controllerTopic(code){return 'career-arena-control:'+String(code||'').toUpperCase()}
+function publishControllerMessage(payload){
+ if(!controllerChannel)return;
+ controllerChannel.send({type:'broadcast',event:'controller-message',payload}).catch(()=>{});
+}
+function removeControllerChannel(){
+ if(supabaseClient&&controllerChannel){supabaseClient.removeChannel(controllerChannel).catch(()=>{});}
+ controllerChannel=null;controllerConnected=false;
+}
+function openHostControllerChannel(code,onReady,onError){
+ const client=getSupabaseClient();if(!client){onError('Không tải được Supabase JS hoặc thiếu URL/Publishable Key.');return}
+ controllerChannel=client.channel(controllerTopic(code),{config:{broadcast:{self:false},private:false}});
+ controllerChannel.on('broadcast',{event:'controller-message'},({payload})=>{
+  const data=payload||{};
+  if(data.type==='controller-hello'){
+   publishControllerMessage({type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});
+   if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Điện thoại điều khiển: đã kết nối';
+   return;
+  }
+  if(data.type==='control-action')onMessage({__controller:true},data);
+ });
+ let settled=false;
+ const timeout=setTimeout(()=>{if(!settled){settled=true;onError('Hết thời gian kết nối Supabase Realtime. Kiểm tra Realtime đã được bật trong dự án.')}},20000);
+ controllerChannel.subscribe(status=>{
+  if(status==='SUBSCRIBED'&&!settled){settled=true;clearTimeout(timeout);onReady()}
+  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status)}
+ });
+}
 const state=()=>({type:'state',reflex,reflexElapsed,teams,submissions,currentRound,seconds,approvalMode,question:{text:currentQuestion,type:questionType,options:questionOptions},teamVotes,teamTexts,teamFinals,captainElection,captainVotes,captains,raceOrder});
 const send=(c,d)=>{try{if(c&&c.open)c.send(d)}catch(e){}};
-const broadcast=()=>{const s=state();connections.forEach(c=>send(c,s));controllerConnections.forEach(c=>send(c,{type:'control-state',state:s,pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))}));renderTeacher()};
+const broadcast=()=>{const s=state();connections.forEach(c=>send(c,s));publishControllerMessage({type:'control-state',state:s,pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});renderTeacher()};
 const show=id=>$(id).classList.remove('hidden'),hide=id=>$(id).classList.add('hidden');
 function renderPending(){
  const root=$('pendingRequests'),count=$('pendingCount');
@@ -127,7 +163,7 @@ function onMessage(conn,data){
 function makeRoomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const bytes=crypto.getRandomValues(new Uint8Array(8));return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')}
 function attachIncoming(peerServer,isController){
  peerServer.on('connection',conn=>{
-  if(isController){
+  if(isController){ /* Controller transport now uses Supabase Realtime. */
    conn.__controller=true;
    controllerConnections.set(conn.peer,conn);
    const status=$('controllerLinkStatus');
@@ -189,17 +225,18 @@ function attachIncoming(peerServer,isController){
  });
 }function startTeacher(){
  if(typeof Peer==='undefined'){$('connectionStatus').textContent='Không tải được thư viện kết nối';return}
+ if(!getSupabaseClient()){$('connectionStatus').textContent='Thiếu cấu hình Supabase Realtime';return}
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';
  const studentCode=makeRoomCode(),teacherCode=makeRoomCode();
- peer=new Peer(studentCode,PEER_OPTIONS);teacherPeer=new Peer(teacherCode,PEER_OPTIONS);
- let studentReady=false,teacherReady=false,failed=false;
- const finishSetup=()=>{if(failed||!studentReady||!teacherReady)return;$('roomCode').textContent=studentCode;$('teacherRoomCodeDisplay').textContent=teacherCode;show('roomShare');$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()};
- peer.on('open',()=>{studentReady=true;finishSetup()});teacherPeer.on('open',()=>{teacherReady=true;finishSetup()});
- attachIncoming(peer,false);attachIncoming(teacherPeer,true);
- const handleError=e=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở phòng: '+(e.type||'lỗi kết nối')+'. Hãy thử tạo phòng mới.';$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}try{teacherPeer?.destroy()}catch(err){}peer=null;teacherPeer=null};
- peer.on('error',handleError);teacherPeer.on('error',handleError);
+ peer=new Peer(studentCode,PEER_OPTIONS);
+ let studentReady=false,controllerReady=false,failed=false;
+ const finishSetup=()=>{if(failed||!studentReady||!controllerReady)return;$('roomCode').textContent=studentCode;$('teacherRoomCodeDisplay').textContent=teacherCode;show('roomShare');$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()};
+ peer.on('open',()=>{studentReady=true;finishSetup()});
+ attachIncoming(peer,false);
+ peer.on('error',e=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở phòng học sinh: '+(e.type||'lỗi kết nối');$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}peer=null;removeControllerChannel()});
+ openHostControllerChannel(teacherCode,()=>{controllerReady=true;finishSetup()},message=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở kênh điều khiển: '+message;$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}peer=null;removeControllerChannel()});
 }
-function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy();peer=null;teacherPeer=null;connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
+function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy();peer=null;teacherPeer=null;removeControllerChannel();connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
 function startStudent(){
  show('studentView');if(!hostId){hide('studentView');show('unsupported');return}
  let joinTimer=null,joining=false,joinSent=false;
@@ -288,69 +325,40 @@ function startStudent(){
 
 function startController(){
  document.body.classList.add('is-mobile-controller');show('controllerView');
- if(!controllerHost||typeof Peer==='undefined'){$('controllerStatus').textContent='Thiếu mã truy cập giáo viên hoặc thư viện kết nối';return}
- let connectTimer=null;
- const clearConnectTimer=()=>{if(connectTimer){clearTimeout(connectTimer);connectTimer=null}};
- const setControllerStatus=(message,connected=false)=>{controllerConnected=connected;$('controllerStatus').textContent=message;$('controllerView').classList.toggle('controller-offline',!connected)};
- const scheduleControllerReconnect=()=>{if(controllerRetryTimer||!peer||peer.destroyed)return;controllerRetryTimer=setTimeout(()=>{controllerRetryTimer=null;if(peer&&!peer.destroyed){if(!peer.open&&peer.disconnected){try{peer.reconnect()}catch(e){}}connectController()}},4000)};
- const connectController=()=>{
-  if(!peer||peer.destroyed||!peer.open||controllerConnected)return;
-  if(connection){try{connection.close()}catch(e){}connection=null}
-  setControllerStatus('Đã kết nối máy chủ · Đang tìm máy tính chủ phòng…',false);
-  try{
-   connection=peer.connect(controllerHost,{reliable:true});
-   const current=connection;
-   clearConnectTimer();
-   connectTimer=setTimeout(()=>{
-    if(connection===current&&!current.open){
-     const p=current.peerConnection;const detail=p?'ICE '+(p.iceConnectionState||'unknown')+' · Peer '+(p.connectionState||'unknown'):'chưa có trạng thái PeerConnection';setControllerStatus('Hết thời gian mở kênh dữ liệu ('+detail+'). Laptop đã nhận yêu cầu nhưng chưa hoàn tất WebRTC.',false);
-     try{current.close()}catch(e){}
-     scheduleControllerReconnect();
-    }
-   },30000);
-   current.on('open',()=>{
-    clearConnectTimer();
-    controllerConnected=true;
-    setControllerStatus('Đã kết nối với máy tính · Đang đồng bộ dữ liệu…',true);
-    if(lastControllerState)renderController(lastControllerState.state,lastControllerState.pending||[]);
-   });
-   current.on('data',data=>{
-    if(data&&(data.type==='controller-ready'||data.type==='control-state')){
-     lastControllerState={state:data.state,pending:data.pending||[]};
-     renderController(data.state,data.pending||[]);
-     setControllerStatus('Đã đồng bộ với máy tính',true);
-    }
-   });
-   current.on('close',()=>{
-    clearConnectTimer();controllerConnected=false;
-    setControllerStatus('Kết nối đã đóng · Đang thử lại',false);
-    scheduleControllerReconnect();
-   });
-   current.on('error',e=>{
-    clearConnectTimer();controllerConnected=false;
-    const type=e&&e.type?e.type:'unknown';
-    const detail=e&&e.message?': '+e.message:'';
-    setControllerStatus('Lỗi kết nối ('+type+')'+detail,false);
-    scheduleControllerReconnect();
-   });
-  }catch(e){
-   clearConnectTimer();controllerConnected=false;
-   setControllerStatus('Không thể tạo kết nối: '+(e&&e.message?e.message:'lỗi không xác định'),false);
-   scheduleControllerReconnect();
+ const client=getSupabaseClient();
+ if(!controllerHost||!client){$('controllerStatus').textContent='Thiếu mã giáo viên hoặc cấu hình Supabase';return}
+ const topic=controllerTopic(controllerHost);
+ controllerChannel=client.channel(topic,{config:{broadcast:{self:false},private:false}});
+ controllerChannel.on('broadcast',{event:'controller-message'},({payload})=>{
+  const data=payload||{};
+  if(data.type==='controller-ready'||data.type==='control-state'){
+   lastControllerState={state:data.state,pending:data.pending||[]};
+   renderController(data.state,data.pending||[]);
+   setControllerStatus('Đã đồng bộ với máy tính',true);
   }
- };
- setControllerStatus('Đang kết nối máy chủ PeerJS…',false);
- peer=new Peer(undefined,PEER_OPTIONS);
- peer.on('open',()=>{setControllerStatus('Đã kết nối máy chủ · Đang tìm máy tính chủ phòng…',false);connectController()});
- peer.on('disconnected',()=>{setControllerStatus('Mất liên lạc với máy chủ · Đang kết nối lại',false);try{peer.reconnect()}catch(e){}scheduleControllerReconnect()});
- peer.on('error',e=>{
-  const type=e&&e.type?e.type:'unknown',detail=e&&e.message?': '+e.message:'';
-  setControllerStatus('Lỗi máy chủ PeerJS ('+type+')'+detail,false);
-  scheduleControllerReconnect();
  });
- const act=action=>{if(!connection||!connection.open){setControllerStatus('Chưa kết nối · Lệnh chưa được gửi',false);scheduleControllerReconnect();return}send(connection,{type:'control-action',action})};
- $('controllerTimerStart').addEventListener('click',()=>act({type:'timer-start'}));$('controllerTimerReset').addEventListener('click',()=>act({type:'timer-reset'}));$('controllerRound').addEventListener('change',()=>act({type:'set-round',value:$('controllerRound').value}));$('controllerCaptainVote').addEventListener('click',()=>act({type:'captain-vote'}));$('controllerApprovalMode').value='auto';$('controllerApprovalMode').disabled=true;
- window.addEventListener('beforeunload',()=>{clearConnectTimer();if(controllerRetryTimer)clearTimeout(controllerRetryTimer);if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy()});
+ const setControllerStatus=(message,connected=false)=>{controllerConnected=connected;$('controllerStatus').textContent=message;$('controllerView').classList.toggle('controller-offline',!connected)};
+ const act=action=>{
+  if(!controllerConnected||!controllerChannel){setControllerStatus('Chưa kết nối · Lệnh chưa được gửi',false);return}
+  controllerChannel.send({type:'broadcast',event:'controller-message',payload:{type:'control-action',action}}).then(status=>{
+   if(status!=='ok')setControllerStatus('Không gửi được lệnh điều khiển ('+status+')',false);
+  }).catch(()=>setControllerStatus('Mất kết nối · Lệnh chưa được gửi',false));
+ };
+ setControllerStatus('Đang kết nối kênh điều khiển…',false);
+ controllerChannel.subscribe(status=>{
+  if(status==='SUBSCRIBED'){
+   setControllerStatus('Đã kết nối kênh · Đang đồng bộ…',true);
+   controllerChannel.send({type:'broadcast',event:'controller-message',payload:{type:'controller-hello'}});
+  }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+   setControllerStatus('Kết nối Supabase Realtime bị gián đoạn ('+status+')',false);
+  }
+ });
+ $('controllerTimerStart').addEventListener('click',()=>act({type:'timer-start'}));
+ $('controllerTimerReset').addEventListener('click',()=>act({type:'timer-reset'}));
+ $('controllerRound').addEventListener('change',()=>act({type:'set-round',value:$('controllerRound').value}));
+ $('controllerCaptainVote').addEventListener('click',()=>act({type:'captain-vote'}));
+ const approvalMode=$('controllerApprovalMode');if(approvalMode){approvalMode.value='auto';approvalMode.disabled=true}
+ window.addEventListener('beforeunload',()=>{if(client&&controllerChannel)client.removeChannel(controllerChannel);controllerChannel=null});
 }
 function renderController(s,pending){
  if(!s)return;
@@ -394,5 +402,5 @@ function renderStudentState(data){if(!data||data.type!=='state')return;renderRef
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
 function publishQuestion(){const q=$('discussionQuestion').value.trim();if(!q){$('questionStatus').textContent='Hãy nhập nội dung câu hỏi.';return}questionType=$('discussionType').value;questionOptions=$('discussionOptions').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,8);if(questionType!=='text'&&questionOptions.length<2){$('questionStatus').textContent='Hãy nhập ít nhất hai phương án, mỗi phương án một dòng.';return}currentQuestion=q;teamVotes=[{}, {}, {}, {}];teamTexts=[[],[],[],[]];teamFinals=[null,null,null,null];raceOrder=[];raceAwarded.clear();$('questionStatus').textContent='Đã gửi câu hỏi đến các phòng đội.';broadcast()}
 function setClock(){$('roomClock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
-if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()})}
+if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{if(peer)peer.destroy();removeControllerChannel()})}
 })();
