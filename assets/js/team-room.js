@@ -1,8 +1,8 @@
 (() => {
 'use strict';
-const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),hostId=params.get('join'),controllerHost=params.get('control'),controllerToken=params.get('key');
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),hostId=params.get('join'),controllerHost=params.get('control');
 const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1};
-let peer=null,connection=null,timer=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='manual',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),controllerSecret='',pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
+let peer=null,teacherPeer=null,connection=null,timer=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='manual',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
 const state=()=>({type:'state',reflex,reflexElapsed,teams,submissions,currentRound,seconds,approvalMode,question:{text:currentQuestion,type:questionType,options:questionOptions},teamVotes,teamTexts,teamFinals,captainElection,captainVotes,captains,raceOrder});
 const send=(c,d)=>{try{if(c&&c.open)c.send(d)}catch(e){}};
 const broadcast=()=>{const s=state();connections.forEach(c=>send(c,s));controllerConnections.forEach(c=>send(c,{type:'control-state',state:s,pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))}));renderTeacher()};
@@ -83,12 +83,6 @@ function renderTeacher(){
 function award(id,points){if(awarded.has(id))return;const item=submissions.find(s=>s.id===id);if(!item)return;teams[item.team].score+=points;awarded.add(id);broadcast()}
 function onMessage(conn,data){
  if(!data||typeof data!=='object')return;
- if(data.type==='controller-auth'){
-  if(!controllerSecret||data.token!==controllerSecret){send(conn,{type:'controller-denied',message:'Mã liên kết không hợp lệ.'});conn.close();return}
-  conn.__controller=true;controllerConnections.set(conn.peer,conn);
-  send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});
-  $('controllerPairStatus').textContent='Đã liên kết '+controllerConnections.size+' điện thoại.';return;
- }
  if(conn.__controller&&data.type==='control-action'){
   const a=data.action||{};
   if(a.type==='timer-start'){if(!timer)timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000);broadcast();return}
@@ -134,19 +128,21 @@ function onMessage(conn,data){
  }
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
+function makeRoomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const bytes=crypto.getRandomValues(new Uint8Array(8));return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')}
+function attachIncoming(peerServer,isController){peerServer.on('connection',conn=>{if(isController){conn.__controller=true;controllerConnections.set(conn.peer,conn)}else connections.set(conn.peer,conn);conn.on('open',()=>{if(isController)send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});else send(conn,{type:'room-ready'})});conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}if($('controllerPairStatus'))$('controllerPairStatus').textContent=controllerConnections.size?'Đã liên kết '+controllerConnections.size+' điện thoại.':'Chưa có điện thoại điều khiển kết nối.';broadcast()});conn.on('error',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}broadcast()})})}
 function startTeacher(){
- controllerSecret=Array.from(crypto.getRandomValues(new Uint8Array(18)),b=>b.toString(16).padStart(2,'0')).join('');
  if(typeof Peer==='undefined'){$('connectionStatus').textContent='Không tải được thư viện kết nối';return}
- $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';peer=new Peer(undefined,PEER_OPTIONS);
- peer.on('open',id=>{ const code=id.slice(-8).toUpperCase();$('roomCode').textContent=code;$('roomCodeLarge').textContent=code;const url=new URL('room.html',location.href);url.search='?join='+encodeURIComponent(id);$('joinLink').href=url.href;$('joinLink').textContent=url.href;$('joinLinkLarge').href=url.href;$('joinLinkLarge').textContent=url.href;$('qrCode').replaceChildren();$('qrCodeLarge').replaceChildren();if(typeof QRCode!=='undefined'){new QRCode($('qrCode'),{text:url.href,width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});new QRCode($('qrCodeLarge'),{text:url.href,width:512,height:512,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M})}show('roomShare');show('qrModal');
- const controlUrl=new URL('room.html',location.href);controlUrl.search='?control='+encodeURIComponent(id)+'&key='+encodeURIComponent(controllerSecret);
- $('controllerLink').href=controlUrl.href;$('controllerLink').textContent=controlUrl.href;$('controllerQr').replaceChildren();
- if(typeof QRCode!=='undefined')new QRCode($('controllerQr'),{text:controlUrl.href,width:320,height:320,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
- show('controllerPairPanel');$('controllerPairStatus').textContent='Chưa có điện thoại liên kết.';$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()});
- peer.on('connection',conn=>{connections.set(conn.peer,conn);conn.on('open',()=>send(conn,{type:'room-ready'}));conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!conn.__controller){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}if($('controllerPairStatus'))$('controllerPairStatus').textContent=controllerConnections.size?'Đã liên kết '+controllerConnections.size+' điện thoại.':'Điện thoại điều khiển đã ngắt kết nối.';broadcast()});conn.on('error',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!conn.__controller){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}broadcast()})});
- peer.on('error',e=>{$('connectionStatus').textContent='Lỗi kết nối: '+(e.type||'không xác định')+(e.message?' – '+e.message:'');$('createRoom').disabled=false;if(peer){try{peer.destroy()}catch(err){}peer=null}})
+ $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';
+ const studentCode=makeRoomCode(),teacherCode=makeRoomCode();
+ peer=new Peer(studentCode,PEER_OPTIONS);teacherPeer=new Peer(teacherCode,PEER_OPTIONS);
+ let studentReady=false,teacherReady=false,failed=false;
+ const finishSetup=()=>{if(failed||!studentReady||!teacherReady)return;$('roomCode').textContent=studentCode;$('teacherRoomCodeDisplay').textContent=teacherCode;show('roomShare');$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()};
+ peer.on('open',()=>{studentReady=true;finishSetup()});teacherPeer.on('open',()=>{teacherReady=true;finishSetup()});
+ attachIncoming(peer,false);attachIncoming(teacherPeer,true);
+ const handleError=e=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở phòng: '+(e.type||'lỗi kết nối')+'. Hãy thử tạo phòng mới.';$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}try{teacherPeer?.destroy()}catch(err){}peer=null;teacherPeer=null};
+ peer.on('error',handleError);teacherPeer.on('error',handleError);
 }
-function closeTeacher(){hide('qrModal');hide('controllerPairPanel');controllerConnections.clear();controllerSecret='';if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();peer=null;connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
+function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy();peer=null;teacherPeer=null;connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
 function startStudent(){
  show('studentView');if(!hostId){hide('studentView');show('unsupported');return}
  let joinTimer=null,joining=false,joinSent=false;
@@ -235,18 +231,13 @@ function startStudent(){
 
 function startController(){
  show('controllerView');
- if(!controllerHost||!controllerToken||typeof Peer==='undefined'){$('controllerStatus').textContent='Thiếu mã liên kết';return}
+ if(!controllerHost||typeof Peer==='undefined'){$('controllerStatus').textContent='Thiếu mã truy cập giáo viên hoặc thư viện kết nối';return}
  peer=new Peer(undefined,PEER_OPTIONS);
- peer.on('open',()=>{connection=peer.connect(controllerHost,{reliable:true});connection.on('open',()=>send(connection,{type:'controller-auth',token:controllerToken}));connection.on('data',data=>{if(data.type==='controller-denied'){$('controllerStatus').textContent=data.message;return}if(data.type==='controller-ready'||data.type==='control-state'){renderController(data.state,data.pending||[]);$('controllerStatus').textContent='Đã liên kết với laptop'}});connection.on('close',()=>{$('controllerStatus').textContent='Mất kết nối với laptop'})});
- peer.on('error',e=>$('controllerStatus').textContent='Lỗi kết nối: '+(e.type||'không xác định'));
+ peer.on('open',()=>{connection=peer.connect(controllerHost,{reliable:true});connection.on('open',()=>{$('controllerStatus').textContent='Đã kết nối. Đang tải bảng điều khiển…'});connection.on('data',data=>{if(data.type==='controller-ready'||data.type==='control-state'){renderController(data.state,data.pending||[]);$('controllerStatus').textContent='Đã kết nối với phòng giáo viên'}});connection.on('close',()=>{$('controllerStatus').textContent='Mất kết nối với phòng giáo viên'})});
+ peer.on('error',e=>$('controllerStatus').textContent='Không thể kết nối: '+(e.type||'lỗi kết nối')+'. Kiểm tra lại mã giáo viên.');
  const act=action=>send(connection,{type:'control-action',action});
- $('controllerTimerStart').addEventListener('click',()=>act({type:'timer-start'}));
- $('controllerTimerReset').addEventListener('click',()=>act({type:'timer-reset'}));
- $('controllerRound').addEventListener('change',()=>act({type:'set-round',value:$('controllerRound').value}));
- $('controllerCaptainVote').addEventListener('click',()=>act({type:'captain-vote'}));
- $('controllerApprovalMode').addEventListener('change',()=>act({type:'approval-mode',value:$('controllerApprovalMode').value}));
- $('controllerApprovalMode').addEventListener('change',()=>act({type:'approval-mode',value:$('controllerApprovalMode').value}));
- window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()});
+ $('controllerTimerStart').addEventListener('click',()=>act({type:'timer-start'}));$('controllerTimerReset').addEventListener('click',()=>act({type:'timer-reset'}));$('controllerRound').addEventListener('change',()=>act({type:'set-round',value:$('controllerRound').value}));$('controllerCaptainVote').addEventListener('click',()=>act({type:'captain-vote'}));$('controllerApprovalMode').addEventListener('change',()=>act({type:'approval-mode',value:$('controllerApprovalMode').value}));
+ window.addEventListener('beforeunload',()=>{if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy()});
 }
 function renderController(s,pending){
  if(!s)return;
@@ -282,5 +273,5 @@ function renderStudentState(data){if(!data||data.type!=='state')return;renderRef
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
 function publishQuestion(){const q=$('discussionQuestion').value.trim();if(!q){$('questionStatus').textContent='Hãy nhập nội dung câu hỏi.';return}questionType=$('discussionType').value;questionOptions=$('discussionOptions').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,8);if(questionType!=='text'&&questionOptions.length<2){$('questionStatus').textContent='Hãy nhập ít nhất hai phương án, mỗi phương án một dòng.';return}currentQuestion=q;teamVotes=[{}, {}, {}, {}];teamTexts=[[],[],[],[]];teamFinals=[null,null,null,null];raceOrder=[];raceAwarded.clear();$('questionStatus').textContent='Đã gửi câu hỏi đến các phòng đội.';broadcast()}
 function setClock(){$('roomClock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
-if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('closeQrModal').addEventListener('click',()=>hide('qrModal'));$('dismissQrModal').addEventListener('click',()=>hide('qrModal'));$('qrModal').addEventListener('click',e=>{if(e.target===$('qrModal'))hide('qrModal')});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide('qrModal')});$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()})}
+if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()})}
 })();
