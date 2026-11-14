@@ -199,7 +199,7 @@ function startStudent(){
       $('studentStatus').textContent='Mất kết nối';$('studentStatus').style.background='#71342c';
       $('sendStatus').textContent='Phòng đã đóng hoặc kết nối với giáo viên bị ngắt.';
      });
-     connection.on('error',e=>failJoin('Lỗi kết nối tới phòng: '+(e&&e.message?e.message:'không xác định')+'. Hãy quét mã QR mới nhất.'));
+     connection.on('error',e=>failJoin('Lỗi kết nối tới phòng: '+(e&&e.message?e.message:'không xác định')+'. Hãy nhập lại mã phòng do giáo viên cung cấp.'));
     }catch(e){failJoin('Không thể gửi yêu cầu vào phòng: '+(e&&e.message?e.message:'lỗi không xác định'))}
    });
    peer.on('error',e=>{
@@ -209,7 +209,7 @@ function startStudent(){
      'network':'Mất kết nối mạng khi liên hệ máy chủ PeerJS.',
      'socket-error':'Không mở được kênh liên lạc với máy chủ PeerJS.',
      'socket-closed':'Kênh liên lạc với máy chủ PeerJS đã đóng.',
-     'peer-unavailable':'Không tìm thấy phòng. Giáo viên cần tạo phòng mới và gửi lại mã QR.'
+     'peer-unavailable':'Không tìm thấy phòng. Giáo viên cần mở phòng và cung cấp mã phòng mới.'
     };
     failJoin((messages[type]||'Kết nối thất bại ('+type+').')+(detail?' Chi tiết: '+detail:''));
    });
