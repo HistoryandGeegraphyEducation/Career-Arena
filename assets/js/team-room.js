@@ -10,19 +10,19 @@ function getSupabaseClient(){
  supabaseClient=window.supabase.createClient(SUPABASE_CONFIG.url,SUPABASE_CONFIG.publishableKey);
  return supabaseClient;
 }
-function controllerTopic(code){return 'career-arena-control:'+String(code||'').toUpperCase()}
-function studentTopic(code){return 'career-arena-students:'+String(code||'').toUpperCase()}
+function controllerTopic(code){return 'career-arena-control:'+String(code||'').trim().replace(/\s+/g,'').toUpperCase()}
+function studentTopic(code){return 'career-arena-students:'+String(code||'').trim().replace(/\s+/g,'').toUpperCase()}
 function removeStudentChannel(){
  if(supabaseClient&&studentChannel){supabaseClient.removeChannel(studentChannel).catch(()=>{});}
  studentChannel=null;
 }
 function openHostStudentChannel(code,onReady,onError){
  const client=getSupabaseClient();if(!client){onError('Thiếu cấu hình Supabase.');return}
- studentChannel=client.channel(studentTopic(code),{config:{broadcast:{self:false},private:false}});
+ studentChannel=client.channel(studentTopic(code),{config:{broadcast:{self:false,ack:true},private:false}});
  studentChannel.on('broadcast',{event:'student-message'},({payload})=>{
   const message=payload||{},clientId=String(message.clientId||'');
-  if(!clientId)return;
-  if(message.data?.type==='student-leave'){
+  if(!clientId||!message.data)return;
+  if(message.data.type==='student-leave'){
    const existing=connections.get(clientId);
    if(existing){connections.delete(clientId);pendingRequests.delete(clientId);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==clientId));renderPending();broadcast()}
    return;
@@ -42,9 +42,9 @@ function openHostStudentChannel(code,onReady,onError){
  });
  let settled=false;
  const timeout=setTimeout(()=>{if(!settled){settled=true;onError('Hết thời gian mở kênh học sinh trên Supabase Realtime.')}},20000);
- studentChannel.subscribe(status=>{
+ studentChannel.subscribe((status,error)=>{
   if(status==='SUBSCRIBED'&&!settled){settled=true;clearTimeout(timeout);onReady()}
-  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status)}
+  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status+(error?.message?' · '+error.message:''))}
  });
 }
 function publishControllerMessage(payload){
@@ -69,9 +69,9 @@ function openHostControllerChannel(code,onReady,onError){
  });
  let settled=false;
  const timeout=setTimeout(()=>{if(!settled){settled=true;onError('Hết thời gian kết nối Supabase Realtime. Kiểm tra Realtime đã được bật trong dự án.')}},20000);
- controllerChannel.subscribe(status=>{
+ controllerChannel.subscribe((status,error)=>{
   if(status==='SUBSCRIBED'&&!settled){settled=true;clearTimeout(timeout);onReady()}
-  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status)}
+  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status+(error?.message?' · '+error.message:''))}
  });
 }
 const state=()=>({type:'state',reflex,reflexElapsed,teams,submissions,currentRound,seconds,approvalMode,question:{text:currentQuestion,type:questionType,options:questionOptions},teamVotes,teamTexts,teamFinals,captainElection,captainVotes,captains,raceOrder});
@@ -290,7 +290,7 @@ function startStudent(){
      const result=await connection.send({type:'join',name,team});
      if(result!=='ok'&&joining)failJoin('Không gửi được yêu cầu vào phòng ('+result+').');
     }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')&&joining){
-     failJoin('Kết nối tới phòng bị gián đoạn ('+status+'). Hãy kiểm tra mã phòng và thử lại.');
+     failJoin('Kết nối tới phòng bị gián đoạn ('+status+')'+(error?.message?': '+error.message:'')+'. Hãy kiểm tra mã phòng và thử lại.');
     }
    });
    window.addEventListener('beforeunload',()=>{if(connection)connection.close()},{once:true});
