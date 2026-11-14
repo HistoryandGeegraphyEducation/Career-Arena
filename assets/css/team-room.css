@@ -6,7 +6,7 @@
 .qr-modal-card h2{margin:10px 32px 8px;font-size:clamp(1.2rem,3vw,1.8rem);line-height:1.25;color:#fff}
 .qr-modal-instruction,.qr-modal-tip{max-width:480px;margin:10px auto;color:#c7e3ff;line-height:1.55}
 .qr-large{width:min( min(76vw,390px), 390px);height:min( min(76vw,390px), 390px);margin:20px auto;padding:14px;display:grid;place-items:center;border-radius:18px;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.12),0 12px 34px rgba(0,0,0,.28)}
-.qr-large img,.qr-large canvas{display:block!important;width:100%!important;height:100%!important;max-width:100%;object-fit:contain}
+.qr-large{box-sizing:border-box;overflow:hidden}.qr-large img{display:block!important;width:100%!important;height:100%!important;max-width:100%;object-fit:contain;image-rendering:pixelated}.qr-large canvas{display:none!important}
 .qr-modal-code{margin:8px 0;color:#c5e7ff;font-size:1rem;letter-spacing:.06em}
 .qr-modal-code strong{color:#ffd76a;font-size:1.3rem;letter-spacing:.14em}
 .qr-modal-link{display:block;max-width:100%;overflow-wrap:anywhere;margin:8px auto;color:#8bdcff}
@@ -16,3 +16,6 @@
 
 /* Teacher approval queue for student join requests */
 .pending-requests{display:grid;gap:10px}.pending-card{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 16px;border:1px solid #398bd1;border-radius:14px;background:#071d4c}.pending-info{display:grid;gap:5px}.pending-info strong{color:#fff;font-size:1rem}.pending-info span{color:#b8d7f4;font-size:.88rem}.pending-actions{display:flex;gap:8px;flex-wrap:wrap}.pending-actions button{padding:9px 13px}.pending-approve{background:#087b58;border-color:#22c997}.pending-reject{border-color:#bd786e;color:#ffd0c8}@media(max-width:520px){.pending-card{align-items:stretch}.pending-actions{width:100%}.pending-actions button{flex:1}}
+
+/* QR rendering: one crisp black-on-white layer only */
+.qr-box,.qr-large{background:#fff!important;color:#000!important}.qr-box img,.qr-large img{background:#fff!important;image-rendering:pixelated}.qr-large{padding:12px}
