@@ -19,3 +19,12 @@ Mở `index.html` hoặc bật GitHub Pages từ Settings → Pages → Deploy f
 
 ## Lưu ý chức năng
 Điểm số hiện được điều phối thủ công bởi giáo viên; dữ liệu nhập được giữ trong phiên trang (chưa có máy chủ hoặc đồng bộ nhiều thiết bị). Âm thanh hiệu ứng được tổng hợp bằng Web Audio API và chỉ phát sau thao tác người dùng.
+
+
+## Phòng chơi theo đội qua mã QR
+- Mở `room.html` trên thiết bị giáo viên và chọn **Tạo phòng và sinh mã QR**.
+- Thành viên quét mã QR, nhập tên, chọn đội và gửi câu trả lời từ điện thoại.
+- Giáo viên theo dõi thành viên, câu trả lời và bảng điểm; cộng 1, 2 hoặc 5 điểm cho từng lượt gửi. Mỗi lượt chỉ được chấm một lần.
+- Phòng sử dụng PeerJS để kết nối trực tiếp giữa các trình duyệt. Thiết bị giáo viên phải giữ trang phòng mở và có kết nối Internet trong suốt hoạt động. Nếu tải lại hoặc đóng trang, phòng cũ kết thúc và cần tạo mã mới.
+- Mã QR là đường dẫn tham gia phòng. Chỉ chia sẻ mã cho người trong lớp; hiện chưa có mật khẩu hoặc xác thực tài khoản.
+- Các thư viện PeerJS và QRCode được tải từ CDN nên thiết bị cần truy cập Internet. GitHub Pages chỉ lưu trữ giao diện, không lưu lịch sử phòng hoặc điểm sau khi đóng phòng.
