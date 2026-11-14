@@ -127,3 +127,8 @@
  #controllerView .timer-box .row{grid-template-columns:1fr}
  .student-role-badge{font-size:.6rem;padding:6px}
 }
+
+.is-mobile-controller .round-banner{display:none}
+.is-mobile-controller .topbar .nav{display:none}
+.is-mobile-controller .room-wrap{padding-top:12px}
+.is-mobile-controller #controllerView{margin-top:0}
