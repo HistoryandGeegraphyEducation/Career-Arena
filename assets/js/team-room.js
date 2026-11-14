@@ -23,14 +23,64 @@ function startTeacher(){
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';peer=new Peer();
  peer.on('open',id=>{ const code=id.slice(-8).toUpperCase();$('roomCode').textContent=code;$('roomCodeLarge').textContent=code;const url=new URL('room.html',location.href);url.search='?join='+encodeURIComponent(id);$('joinLink').href=url.href;$('joinLink').textContent=url.href;$('joinLinkLarge').href=url.href;$('joinLinkLarge').textContent=url.href;$('qrCode').replaceChildren();$('qrCodeLarge').replaceChildren();if(typeof QRCode!=='undefined'){new QRCode($('qrCode'),{text:url.href,width:160,height:160,colorDark:'#061b48',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});new QRCode($('qrCodeLarge'),{text:url.href,width:360,height:360,colorDark:'#061b48',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H})}show('roomShare');show('qrModal');$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()});
  peer.on('connection',conn=>{connections.set(conn.peer,conn);conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));broadcast()});conn.on('error',()=>connections.delete(conn.peer))});
- peer.on('error',e=>{$('connectionStatus').textContent='Lỗi kết nối: '+(e.type||'không xác định');$('createRoom').disabled=false})
+ peer.on('error',e=>{$('connectionStatus').textContent='Lỗi kết nối: '+(e.type||'không xác định')+(e.message?' – '+e.message:'');$('createRoom').disabled=false;if(peer){try{peer.destroy()}catch(err){}peer=null}})
 }
 function closeTeacher(){hide('qrModal');if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();peer=null;connections.clear();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
 function startStudent(){
  show('studentView');if(!hostId){hide('studentView');show('unsupported');return}
- $('joinRoom').addEventListener('click',()=>{const name=$('studentName').value.trim(),team=Number($('studentTeam').value);if(!name){$('joinError').textContent='Hãy nhập tên thành viên.';return}if(typeof Peer==='undefined'){$('joinError').textContent='Không tải được thư viện kết nối. Hãy tải lại trang.';return}
- $('joinRoom').disabled=true;$('joinError').textContent='Đang kết nối với phòng…';peer=new Peer();peer.on('open',()=>{connection=peer.connect(hostId,{reliable:true});connection.on('open',()=>{send(connection,{type:'join',name,team});hide('joinForm');show('studentPlay');$('studentTeamName').textContent=$('studentTeam').selectedOptions[0].textContent;$('studentStatus').textContent='Đã kết nối';$('studentStatus').style.background='#0c633d'});connection.on('data',renderStudentState);connection.on('close',()=>{$('studentStatus').textContent='Mất kết nối';$('studentStatus').style.background='#71342c';$('sendStatus').textContent='Phòng đã đóng hoặc kết nối bị ngắt.'});connection.on('error',()=>{$('joinError').textContent='Không thể kết nối. Hãy quét mã QR mới nhất.';$('joinRoom').disabled=false})});peer.on('error',()=>{$('joinError').textContent='Không tìm thấy phòng hoặc phòng đã đóng.';$('joinRoom').disabled=false})});
- $('sendAnswer').addEventListener('click',()=>{const text=$('studentAnswer').value.trim();if(!text){$('sendStatus').textContent='Hãy nhập nội dung trước khi gửi.';return}if(!connection||!connection.open){$('sendStatus').textContent='Chưa kết nối với giáo viên.';return}send(connection,{type:'answer',text});$('studentAnswer').value='';$('sendStatus').textContent='Đã gửi câu trả lời.'})
+ let joinTimer=null,joining=false;
+ const clearJoinTimer=()=>{if(joinTimer){clearTimeout(joinTimer);joinTimer=null}};
+ const failJoin=message=>{clearJoinTimer();joining=false;if(connection){try{connection.close()}catch(e){}connection=null}if(peer){try{peer.destroy()}catch(e){}peer=null}$('joinError').textContent=message;$('joinRoom').disabled=false;$('studentStatus').textContent='Chưa kết nối';$('studentStatus').style.background='';};
+ $('joinRoom').addEventListener('click',()=>{
+  if(joining)return;
+  const name=$('studentName').value.trim(),team=Number($('studentTeam').value);
+  if(!name){$('joinError').textContent='Hãy nhập tên thành viên.';return}
+  if(typeof Peer==='undefined'){$('joinError').textContent='Không tải được thư viện PeerJS. Hãy kiểm tra Internet rồi tải lại trang.';return}
+  joining=true;$('joinRoom').disabled=true;$('joinError').textContent='Đang kết nối tới máy chủ…';$('studentStatus').textContent='Đang kết nối';$('studentStatus').style.background='';
+  try{
+   peer=new Peer(undefined,{host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1});
+   joinTimer=setTimeout(()=>failJoin('Quá thời gian kết nối máy chủ PeerJS. Hãy tải lại trang hoặc thử mạng Internet khác.'),15000);
+   peer.on('open',()=>{
+    clearJoinTimer();$('joinError').textContent='Đã kết nối máy chủ. Đang gửi yêu cầu vào phòng của giáo viên…';
+    try{
+     connection=peer.connect(hostId,{reliable:true});
+     joinTimer=setTimeout(()=>failJoin('Không nhận được phản hồi từ phòng giáo viên. Hãy kiểm tra giáo viên đã tạo phòng và đang giữ trang phòng mở.'),15000);
+     connection.on('open',()=>{
+      clearJoinTimer();joining=false;
+      send(connection,{type:'join',name,team});
+      hide('joinForm');show('studentPlay');
+      $('studentTeamName').textContent=$('studentTeam').selectedOptions[0].textContent;
+      $('studentStatus').textContent='Đã kết nối';$('studentStatus').style.background='#0c633d';
+     });
+     connection.on('data',renderStudentState);
+     connection.on('close',()=>{
+      clearJoinTimer();joining=false;
+      $('studentStatus').textContent='Mất kết nối';$('studentStatus').style.background='#71342c';
+      $('sendStatus').textContent='Phòng đã đóng hoặc kết nối với giáo viên bị ngắt.';
+     });
+     connection.on('error',e=>failJoin('Lỗi kết nối tới phòng: '+(e&&e.message?e.message:'không xác định')+'. Hãy quét mã QR mới nhất.'));
+    }catch(e){failJoin('Không thể gửi yêu cầu vào phòng: '+(e&&e.message?e.message:'lỗi không xác định'))}
+   });
+   peer.on('error',e=>{
+    const type=e&&e.type?e.type:'unknown',detail=e&&e.message?e.message:'';
+    const messages={
+     'server-error':'Máy chủ PeerJS đang từ chối hoặc không phản hồi kết nối.',
+     'network':'Mất kết nối mạng khi liên hệ máy chủ PeerJS.',
+     'socket-error':'Không mở được kênh liên lạc với máy chủ PeerJS.',
+     'socket-closed':'Kênh liên lạc với máy chủ PeerJS đã đóng.',
+     'peer-unavailable':'Không tìm thấy phòng. Giáo viên cần tạo phòng mới và gửi lại mã QR.'
+    };
+    failJoin((messages[type]||'Kết nối thất bại ('+type+').')+(detail?' Chi tiết: '+detail:''));
+   });
+   peer.on('disconnected',()=>{if(joining)failJoin('Kết nối tới máy chủ PeerJS bị ngắt. Hãy thử lại.')});
+  }catch(e){failJoin('Không thể khởi tạo kết nối: '+(e&&e.message?e.message:'lỗi không xác định'))}
+ });
+ $('sendAnswer').addEventListener('click',()=>{
+  const text=$('studentAnswer').value.trim();
+  if(!text){$('sendStatus').textContent='Hãy nhập nội dung trước khi gửi.';return}
+  if(!connection||!connection.open){$('sendStatus').textContent='Chưa kết nối với giáo viên.';return}
+  send(connection,{type:'answer',text});$('studentAnswer').value='';$('sendStatus').textContent='Đã gửi câu trả lời.';
+ })
 }
 function renderStudentState(data){if(!data||data.type!=='state')return;const team=data.teams?.[Number($('studentTeam').value)];if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.'}
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
