@@ -19,13 +19,13 @@
     <section class="round-banner">
       <span class="eyebrow">CHƠI THEO ĐỘI · KẾT NỐI NHIỀU THIẾT BỊ</span>
       <h1>PHÒNG CHƠI TRỰC TUYẾN</h1>
-      <p class="muted">Giáo viên tạo phòng và chiếu mã QR. Thành viên quét mã, chọn đội rồi gửi câu trả lời từ thiết bị cá nhân.</p>
+      <p class="muted">Giáo viên tạo phòng và cung cấp mã tham gia. Thành viên nhập mã tại trang chủ, chọn đội rồi vào phòng.</p>
     </section>
     <section id="teacherView" class="panel content hidden">
       <div class="section-head"><h2>Bảng điều khiển giáo viên</h2><span id="connectionStatus" class="pill">Chưa mở phòng</span></div>
       <p class="muted">Tạo phòng mới. Giữ trang này mở trong suốt buổi chơi để các thiết bị tiếp tục kết nối.</p>
-      <div class="row"><button id="createRoom" class="btn">TẠO PHÒNG VÀ SINH MÃ QR</button><button id="closeRoom" class="btn ghost" disabled>Đóng phòng</button></div>
-      <div id="roomShare" class="room-access-codes hidden"><article class="access-code-card student-access-code"><span class="eyebrow">MÃ PHÒNG HỌC SINH</span><strong id="roomCode">--------</strong><p>Học sinh nhập mã này tại trang chủ để tham gia phòng.</p></article><article class="access-code-card teacher-access-code"><span class="eyebrow">MÃ TRUY CẬP GIÁO VIÊN</span><strong id="teacherRoomCodeDisplay">--------</strong><p>Giáo viên nhập mã riêng này qua biểu tượng giáo viên ở trang chủ để mở bảng điều khiển trên điện thoại.</p></article></div><div id="controllerQr" class="controller-qr"></div><p id="controllerPairStatus" class="muted">Chưa có điện thoại liên kết.</p></div>
+      <div class="row"><button id="createRoom" class="btn">TẠO PHÒNG VÀ CẤP MÃ</button><button id="closeRoom" class="btn ghost" disabled>Đóng phòng</button></div>
+      <div id="roomShare" class="room-access-codes hidden"><article class="access-code-card student-access-code"><span class="eyebrow">MÃ PHÒNG HỌC SINH</span><strong id="roomCode">--------</strong><p>Học sinh nhập mã này tại trang chủ để tham gia phòng.</p></article><article class="access-code-card teacher-access-code"><span class="eyebrow">MÃ TRUY CẬP GIÁO VIÊN</span><strong id="teacherRoomCodeDisplay">--------</strong><p>Giáo viên nhập mã riêng này qua biểu tượng giáo viên ở trang chủ để mở bảng điều khiển trên điện thoại.</p></article></div>
       <div class="section-head"><h2>Thiết lập đội</h2><span class="muted">Tối đa 4 đội</span></div>
       <div class="team-config">
         <label>Đội 1<input id="teamName0" value="Đội 1" maxlength="24"></label><label>Đội 2<input id="teamName1" value="Đội 2" maxlength="24"></label><label>Đội 3<input id="teamName2" value="Đội 3" maxlength="24"></label><label>Đội 4<input id="teamName3" value="Đội 4" maxlength="24"></label>
@@ -60,7 +60,7 @@
         </section>
       </div>
     </section>
-    <section id="unsupported" class="panel content hidden"><h2>Không tìm thấy phòng chơi</h2><p class="muted">Hãy quét lại mã QR do giáo viên đang điều khiển phòng cung cấp.</p><a class="btn" href="room.html">Về trang tạo phòng</a></section>
+    <section id="unsupported" class="panel content hidden"><h2>Không tìm thấy phòng chơi</h2><p class="muted">Hãy kiểm tra mã phòng đã nhập hoặc yêu cầu giáo viên cung cấp mã mới.</p><a class="btn" href="room.html">Về trang tạo phòng</a></section>
     
   </main>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
