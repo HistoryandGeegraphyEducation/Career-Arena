@@ -2,8 +2,8 @@
 'use strict';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),hostId=params.get('join');
 const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1};
-let peer=null,connection=null,timer=null,seconds=120,teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
-const state=()=>({type:'state',teams,submissions,currentRound,seconds});
+let peer=null,connection=null,timer=null,seconds=120,currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
+const state=()=>({type:'state',teams,submissions,currentRound,seconds,question:{text:currentQuestion,type:questionType,options:questionOptions},teamVotes,teamTexts,teamFinals});
 const send=(c,d)=>{try{if(c&&c.open)c.send(d)}catch(e){}};
 const broadcast=()=>{const s=state();connections.forEach(c=>send(c,s));renderTeacher()};
 const show=id=>$(id).classList.remove('hidden'),hide=id=>$(id).classList.add('hidden');
@@ -41,10 +41,48 @@ function rejectJoin(id){
  send(request.conn,{type:'join-error',message:'Giáo viên chưa chấp nhận yêu cầu tham gia phòng. Hãy liên hệ giáo viên.'});
  setTimeout(()=>{try{request.conn.close()}catch(e){}},250);
 }
+function renderConsensus(){
+ const root=$('teamConsensus');if(!root)return;root.replaceChildren();
+ if(!currentQuestion){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có câu hỏi thảo luận.';root.append(p);return}
+ teams.forEach((team,index)=>{
+  const card=document.createElement('article');card.className='consensus-card';
+  const head=document.createElement('div');head.className='consensus-head';
+  const title=document.createElement('h3');title.textContent=team.name;
+  const count=document.createElement('span');count.className='pill';count.textContent=team.members.length+' thành viên';
+  head.append(title,count);card.append(head);
+  const ballots=teamVotes[index]||{},tally={};Object.values(ballots).forEach(v=>{tally[String(v)]=(tally[String(v)]||0)+1});
+  const total=Object.keys(ballots).length;
+  if(questionType!=='text'&&questionOptions.length){
+   const box=document.createElement('div');box.className='consensus-options';
+   questionOptions.forEach((option,i)=>{const line=document.createElement('div');line.className='consensus-option';const label=document.createElement('span');label.textContent=option;const number=document.createElement('strong');number.textContent=(tally[String(i)]||0)+' phiếu';line.append(label,number);box.append(line)});card.append(box);
+  }
+  const texts=teamTexts[index]||[];
+  if(texts.length){const list=document.createElement('div');list.className='consensus-texts';const label=document.createElement('strong');label.textContent='Ý kiến văn bản ('+texts.length+')';list.append(label);texts.slice(-5).forEach(item=>{const p=document.createElement('p');p.textContent=item.name+': '+item.text;list.append(p)});card.append(list)}
+  const final=teamFinals[index];
+  if(final){const result=document.createElement('p');result.className='consensus-final';result.textContent='ĐÃ CHỐT: '+final.answer+' · '+new Date(final.time).toLocaleTimeString('vi-VN');card.append(result)}
+  else{const actions=document.createElement('div');actions.className='consensus-actions';
+   const select=document.createElement('select');select.setAttribute('aria-label','Chọn đáp án chốt cho '+team.name);
+   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Chọn đáp án chung';select.append(placeholder);
+   if(questionType!=='text')questionOptions.forEach((option,i)=>{const opt=document.createElement('option');opt.value='choice:'+i;opt.textContent=option;select.append(opt)});
+   if(questionType!=='choice'){const opt=document.createElement('option');opt.value='text';opt.textContent='Chốt nội dung văn bản';select.append(opt)}
+   const input=document.createElement('input');input.type='text';input.maxLength=2000;input.placeholder='Nội dung văn bản thống nhất (nếu có)';
+   const button=document.createElement('button');button.type='button';button.className='btn pending-approve';button.textContent='CHỐT ĐÁP ÁN ĐỘI';button.addEventListener('click',()=>{
+    const value=select.value;if(!value){$('questionStatus').textContent='Hãy chọn loại đáp án cần chốt cho '+team.name+'.';return}
+    let answer='';if(value.startsWith('choice:'))answer=questionOptions[Number(value.split(':')[1])]||'';else answer=input.value.trim();
+    if(!answer){$('questionStatus').textContent='Hãy nhập nội dung văn bản trước khi chốt.';return}
+    teamFinals[index]={answer,time:Date.now(),votes:{...teamVotes[index]},textCount:teamTexts[index].length};
+    submissions.push({id:'team-'+index+'-'+Date.now().toString(36),team:index,name:'Đáp án thống nhất',round:currentRound,text:answer,time:Date.now(),final:true});
+    broadcast();
+   });
+   actions.append(select);if(questionType!=='choice')actions.append(input);actions.append(button);card.append(actions);
+  }
+  const foot=document.createElement('small');foot.className='muted';foot.textContent='Lượt lựa chọn: '+total+' / '+team.members.length;card.append(foot);root.append(card);
+ });
+}
 function renderTeacher(){
  $('memberCount').textContent=teams.reduce((n,t)=>n+t.members.length,0)+' thành viên';$('submissionCount').textContent=submissions.length+' lượt gửi';$('scoreboard').replaceChildren();
  teams.forEach(t=>{const card=document.createElement('article');card.className='score-card';const h=document.createElement('h3');h.textContent=t.name;const score=document.createElement('div');score.className='score';score.textContent=t.score+' điểm';const members=document.createElement('small');members.textContent=t.members.length+' thành viên đang kết nối';card.append(h,score,members);$('scoreboard').append(card)});
- $('submissions').replaceChildren();if(!submissions.length){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có câu trả lời được gửi.';$('submissions').append(p);return}
+ renderConsensus();$('submissions').replaceChildren();if(!submissions.length){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có câu trả lời được gửi.';$('submissions').append(p);return}
  [...submissions].reverse().forEach(item=>{const card=document.createElement('article');card.className='submission';const head=document.createElement('div');head.className='submission-head';const who=document.createElement('strong');who.textContent=(teams[item.team]?.name||'Đội')+' · '+item.name+' · '+item.round;const time=document.createElement('small');time.className='muted';time.textContent=new Date(item.time).toLocaleTimeString('vi-VN');head.append(who,time);const body=document.createElement('p');body.textContent=item.text;const actions=document.createElement('div');actions.className='submission-actions';[1,2,5].forEach(points=>{const b=document.createElement('button');b.textContent='+'+points+' điểm';b.disabled=awarded.has(item.id);b.addEventListener('click',()=>award(item.id,points));actions.append(b)});card.append(head,body,actions);$('submissions').append(card)})
 }
 function award(id,points){if(awarded.has(id))return;const item=submissions.find(s=>s.id===id);if(!item)return;teams[item.team].score+=points;awarded.add(id);broadcast()}
@@ -61,6 +99,11 @@ function onMessage(conn,data){
   pendingRequests.set(conn.peer,{conn,team:i,name,requestedAt:Date.now()});
   renderPending();
   send(conn,{type:'join-pending',message:'Yêu cầu đã được gửi tới giáo viên. Vui lòng chờ xác nhận.'});
+ }
+ if(data.type==='team-response'&&Number.isInteger(conn.__team)){
+  const team=conn.__team;if(teamFinals[team]){send(conn,{type:'response-locked',message:'Đội đã được giáo viên chốt đáp án.'});return}
+  if(data.kind==='choice'&&questionType!=='text'&&Number.isInteger(data.option)&&questionOptions[data.option]){teamVotes[team][conn.peer]=data.option;send(conn,{type:'response-received',message:'Đã ghi nhận lựa chọn của bạn.'});broadcast();return}
+  if(data.kind==='text'&&questionType!=='choice'&&typeof data.text==='string'&&data.text.trim()){teamTexts[team].push({name:conn.__name,text:data.text.trim().slice(0,2000),time:Date.now(),kind:'text'});send(conn,{type:'response-received',message:'Đã gửi ý kiến vào phòng đội.'});broadcast();return}
  }
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
@@ -98,6 +141,8 @@ function startStudent(){
       send(connection,{type:'join',name,team});
      });
      connection.on('data',data=>{
+      if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
+      if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
       if(data&&data.type==='join-pending'){
        clearJoinTimer();
        $('joinError').textContent=data.message||'Đã gửi yêu cầu. Vui lòng chờ giáo viên xác nhận.';
@@ -141,14 +186,23 @@ function startStudent(){
   }catch(e){failJoin('Không thể khởi tạo kết nối: '+(e&&e.message?e.message:'lỗi không xác định'))}
  });
  $('sendAnswer').addEventListener('click',()=>{
-  const text=$('studentAnswer').value.trim();
-  if(!text){$('sendStatus').textContent='Hãy nhập nội dung trước khi gửi.';return}
-  if(!connection||!connection.open){$('sendStatus').textContent='Chưa kết nối với giáo viên.';return}
-  send(connection,{type:'answer',text});$('studentAnswer').value='';$('sendStatus').textContent='Đã gửi câu trả lời.';
+  if(!connection||!connection.open){$('sendStatus').textContent='Chưa kết nối với phòng đội.';return}
+  const choice=document.querySelector('input[name="teamChoice"]:checked'),text=$('studentAnswer').value.trim();
+  if(choice){send(connection,{type:'team-response',kind:'choice',option:Number(choice.value)});$('sendStatus').textContent='Đang gửi lựa chọn…';return}
+  if(!$('studentTextWrap').classList.contains('hidden')&&text){send(connection,{type:'team-response',kind:'text',text});$('studentAnswer').value='';$('sendStatus').textContent='Đang gửi ý kiến…';return}
+  $('sendStatus').textContent='Hãy chọn một phương án hoặc nhập ý kiến trước khi gửi.';
  })
 }
-function renderStudentState(data){if(!data||data.type!=='state')return;const team=data.teams?.[Number($('studentTeam').value)];if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.'}
+function renderStudentState(data){if(!data||data.type!=='state')return;const teamIndex=Number($('studentTeam').value);const team=data.teams?.[teamIndex];if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.';
+ const q=data.question||{};$('studentQuestion').textContent=q.text||'Đang chờ giáo viên gửi câu hỏi…';
+ const list=$('studentChoiceList');list.replaceChildren();
+ if(q.type!=='text'&&Array.isArray(q.options))q.options.forEach((option,i)=>{const label=document.createElement('label');label.className='student-choice';const radio=document.createElement('input');radio.type='radio';radio.name='teamChoice';radio.value=String(i);const span=document.createElement('span');span.textContent=option;label.append(radio,span);list.append(label)});
+ $('studentChoiceList').classList.toggle('hidden',q.type==='text'||!q.options?.length);$('studentTextWrap').classList.toggle('hidden',q.type==='choice');
+ const final=data.teamFinals?.[teamIndex];$('sendAnswer').disabled=!!final||!q.text;$('sendAnswer').textContent=final?'ĐỘI ĐÃ CHỐT ĐÁP ÁN':'GỬI Ý KIẾN VÀO PHÒNG ĐỘI';
+ const tally=data.teamVotes?.[teamIndex]||{};$('studentTeamTally').textContent='Đội đã gửi '+Object.keys(tally).length+' lượt lựa chọn.'+(final?' Đáp án chung: '+final.answer:' Giáo viên sẽ quyết định đáp án cuối cùng.');
+}
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
+function publishQuestion(){const q=$('discussionQuestion').value.trim();if(!q){$('questionStatus').textContent='Hãy nhập nội dung câu hỏi.';return}questionType=$('discussionType').value;questionOptions=$('discussionOptions').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,8);if(questionType!=='text'&&questionOptions.length<2){$('questionStatus').textContent='Hãy nhập ít nhất hai phương án, mỗi phương án một dòng.';return}currentQuestion=q;teamVotes=[{}, {}, {}, {}];teamTexts=[[],[],[],[]];teamFinals=[null,null,null,null];$('questionStatus').textContent='Đã gửi câu hỏi đến các phòng đội.';broadcast()}
 function setClock(){$('roomClock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
-if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('closeQrModal').addEventListener('click',()=>hide('qrModal'));$('dismissQrModal').addEventListener('click',()=>hide('qrModal'));$('qrModal').addEventListener('click',e=>{if(e.target===$('qrModal'))hide('qrModal')});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide('qrModal')});$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()})}
+if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('closeQrModal').addEventListener('click',()=>hide('qrModal'));$('dismissQrModal').addEventListener('click',()=>hide('qrModal'));$('qrModal').addEventListener('click',e=>{if(e.target===$('qrModal'))hide('qrModal')});document.addEventListener('keydown',e=>{if(e.key==='Escape')hide('qrModal')});$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('publishQuestion').addEventListener('click',publishQuestion);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();window.addEventListener('beforeunload',()=>{if(peer)peer.destroy()})}
 })();
