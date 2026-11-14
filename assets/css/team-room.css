@@ -77,3 +77,53 @@
 .access-code-card p{margin:0;color:#c6ddf7;line-height:1.55;font-size:.88rem}
 .teacher-access-code{border-color:rgba(255,211,106,.65)}
 @media(max-width:620px){.room-access-codes{grid-template-columns:1fr}.access-code-card{padding:17px}}
+
+
+/* Mobile teacher controller: compact, touch-first layout with visible sync state */
+#controllerView{max-width:100%;min-width:0}
+#controllerView>.section-head:first-child{position:sticky;top:8px;z-index:20;padding:12px;border:1px solid #398bd1;border-radius:14px;background:rgba(5,24,61,.96);backdrop-filter:blur(12px)}
+#controllerView .controller-grid{grid-template-columns:minmax(0,1fr);gap:12px;margin-top:14px}
+#controllerView .field,#controllerView .timer-box{min-width:0}
+#controllerView .timer-box{display:grid;gap:10px}
+#controllerView .timer{font-size:clamp(2.2rem,12vw,3.4rem);line-height:1.1;font-variant-numeric:tabular-nums}
+#controllerView .timer-box .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#controllerView button{min-height:46px;touch-action:manipulation}
+#controllerView select{min-height:44px;width:100%;max-width:100%}
+#controllerView .section-head{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin:22px 0 10px}
+#controllerView .pending-card{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+#controllerView .pending-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+#controllerView .scoreboard{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#controllerView .score-card{min-width:0;padding:12px}
+#controllerView .score-card h3{overflow-wrap:anywhere;font-size:1rem}
+#controllerView .approval-mode{width:100%;justify-content:space-between}
+#controllerView .approval-mode select{flex:1;min-width:0}
+#controllerView.controller-offline .controller-grid,
+#controllerView.controller-offline>#controllerCaptainVote{opacity:.72}
+.controller-link-status{margin:10px 0 20px;padding:10px 13px;border:1px solid #398bd1;border-radius:11px;background:#071d4c;color:#c8e8ff;font-size:.88rem}
+.student-identity-bar{display:flex;align-items:center;gap:11px;margin:0 0 14px;padding:12px 14px;border:1px solid #3b91c9;border-radius:15px;background:linear-gradient(110deg,#0b376d,#071b43);color:#fff}
+.student-identity-avatar{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:13px;background:#1674ad;color:#fff;font-weight:900}
+.student-identity-copy{display:grid;gap:3px;min-width:0;flex:1}
+.student-identity-copy small{color:#9fc9ed;font-size:.68rem;font-weight:900;letter-spacing:.1em}
+.student-identity-copy strong{overflow-wrap:anywhere;font-size:1rem}
+.student-role-badge{flex:0 0 auto;padding:7px 9px;border:1px solid #4b9fd5;border-radius:9px;background:#0b4b78;color:#d7f3ff;font-size:.68rem;font-weight:900;letter-spacing:.04em}
+.student-identity-bar.captain-identity-bar{border-color:#e5bd59;background:linear-gradient(110deg,#49350b,#172746)}
+.captain-identity-bar .student-identity-avatar{background:#d29b26;color:#1b2335}
+.captain-identity-bar .student-identity-copy small{color:#ffdc83}
+.captain-identity-bar .student-role-badge{border-color:#f0c65d;background:#73500d;color:#fff0bd}
+#studentPlay.is-captain .student-summary{border-color:#d6ad4d;background:linear-gradient(120deg,#302b1b,#071b43)}
+#studentPlay.is-captain .captain-identity{border:1px solid #d8b65e;background:#4a390f;color:#ffe8a7}
+#studentPlay.is-captain .captain-submit-panel{border-color:#e4bd5a;background:linear-gradient(145deg,#47350d,#12274b)}
+#studentPlay.is-captain .student-discussion{border-color:#c49a3f}
+#studentPlay.is-captain #studentTeamTally{padding:12px;border:1px solid #b68d35;border-radius:11px;background:#302b1b;color:#ffedc2}
+@media(max-width:600px){
+ #controllerView{padding:14px}
+ #controllerView .scoreboard{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #controllerView .section-head:first-child h2{font-size:1.05rem}
+ .student-identity-bar{padding:10px}
+ .student-identity-copy strong{font-size:.95rem}
+}
+@media(max-width:360px){
+ #controllerView .scoreboard{grid-template-columns:1fr}
+ #controllerView .timer-box .row{grid-template-columns:1fr}
+ .student-role-badge{font-size:.6rem;padding:6px}
+}
