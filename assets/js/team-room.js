@@ -125,7 +125,7 @@ function onMessage(conn,data){
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
 function makeRoomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const bytes=crypto.getRandomValues(new Uint8Array(8));return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')}
-function attachIncoming(peerServer,isController){peerServer.on('connection',conn=>{if(isController){conn.__controller=true;controllerConnections.set(conn.peer,conn);if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Điện thoại điều khiển: đang kết nối…'}else connections.set(conn.peer,conn);conn.on('open',()=>{if(isController){if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Điện thoại điều khiển: đã đồng bộ';send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))})}else send(conn,{type:'room-ready'})});conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}if($('controllerLinkStatus'))$('controllerLinkStatus').textContent=controllerConnections.size?'Điện thoại điều khiển: '+controllerConnections.size+' thiết bị đang kết nối':'Điện thoại điều khiển: chưa kết nối';broadcast()});conn.on('error',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}broadcast()})})}
+function attachIncoming(peerServer,isController){peerServer.on('connection',conn=>{if(isController){conn.__controller=true;controllerConnections.set(conn.peer,conn);if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Đã nhận yêu cầu từ điện thoại · Đang thiết lập kênh dữ liệu…'}else connections.set(conn.peer,conn);conn.on('open',()=>{if(isController){if($('controllerLinkStatus'))$('controllerLinkStatus').textContent='Điện thoại điều khiển: đã đồng bộ';send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))})}else send(conn,{type:'room-ready'})});conn.on('data',d=>onMessage(conn,d));conn.on('close',()=>{connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}if($('controllerLinkStatus'))$('controllerLinkStatus').textContent=controllerConnections.size?'Điện thoại điều khiển: '+controllerConnections.size+' thiết bị đang kết nối':'Điện thoại điều khiển: chưa kết nối';broadcast()});conn.on('error',e=>{if($('controllerLinkStatus')&&isController)$('controllerLinkStatus').textContent='Lỗi kênh điều khiển: '+(e?.type||e?.message||'không xác định');connections.delete(conn.peer);controllerConnections.delete(conn.peer);if(!isController){pendingRequests.delete(conn.peer);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));renderPending()}broadcast()})})}
 function startTeacher(){
  if(typeof Peer==='undefined'){$('connectionStatus').textContent='Không tải được thư viện kết nối';return}
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';
@@ -228,16 +228,68 @@ function startStudent(){
 function startController(){
  document.body.classList.add('is-mobile-controller');show('controllerView');
  if(!controllerHost||typeof Peer==='undefined'){$('controllerStatus').textContent='Thiếu mã truy cập giáo viên hoặc thư viện kết nối';return}
+ let connectTimer=null;
+ const clearConnectTimer=()=>{if(connectTimer){clearTimeout(connectTimer);connectTimer=null}};
  const setControllerStatus=(message,connected=false)=>{controllerConnected=connected;$('controllerStatus').textContent=message;$('controllerView').classList.toggle('controller-offline',!connected)};
- const connectController=()=>{if(!peer||peer.destroyed||!peer.open||controllerConnected)return;try{connection=peer.connect(controllerHost,{reliable:true});connection.on('open',()=>{controllerConnected=true;setControllerStatus('Đã đồng bộ với máy tính',true);if(lastControllerState)renderController(lastControllerState.state,lastControllerState.pending||[])});connection.on('data',data=>{if(data.type==='controller-ready'||data.type==='control-state'){lastControllerState={state:data.state,pending:data.pending||[]};renderController(data.state,data.pending||[]);setControllerStatus('Đã đồng bộ với máy tính',true)}});connection.on('close',()=>{setControllerStatus('Mất kết nối · Đang thử kết nối lại',false);scheduleControllerReconnect()});connection.on('error',()=>{setControllerStatus('Kết nối không ổn định · Đang thử lại',false);scheduleControllerReconnect()})}catch(e){setControllerStatus('Không thể kết nối · Đang thử lại',false);scheduleControllerReconnect()}};
- const scheduleControllerReconnect=()=>{if(controllerRetryTimer||!peer||peer.destroyed)return;controllerRetryTimer=setTimeout(()=>{controllerRetryTimer=null;if(peer&&!peer.destroyed){if(!peer.open&&peer.disconnected){try{peer.reconnect()}catch(e){}}connectController()}},2500)};
+ const scheduleControllerReconnect=()=>{if(controllerRetryTimer||!peer||peer.destroyed)return;controllerRetryTimer=setTimeout(()=>{controllerRetryTimer=null;if(peer&&!peer.destroyed){if(!peer.open&&peer.disconnected){try{peer.reconnect()}catch(e){}}connectController()}},4000)};
+ const connectController=()=>{
+  if(!peer||peer.destroyed||!peer.open||controllerConnected)return;
+  if(connection){try{connection.close()}catch(e){}connection=null}
+  setControllerStatus('Đã kết nối máy chủ · Đang tìm máy tính chủ phòng…',false);
+  try{
+   connection=peer.connect(controllerHost,{reliable:true});
+   const current=connection;
+   clearConnectTimer();
+   connectTimer=setTimeout(()=>{
+    if(connection===current&&!current.open){
+     setControllerStatus('Không nhận được phản hồi từ máy tính chủ phòng. Kiểm tra mã GV và trạng thái phòng trên laptop.',false);
+     try{current.close()}catch(e){}
+     scheduleControllerReconnect();
+    }
+   },12000);
+   current.on('open',()=>{
+    clearConnectTimer();
+    controllerConnected=true;
+    setControllerStatus('Đã kết nối với máy tính · Đang đồng bộ dữ liệu…',true);
+    if(lastControllerState)renderController(lastControllerState.state,lastControllerState.pending||[]);
+   });
+   current.on('data',data=>{
+    if(data&&(data.type==='controller-ready'||data.type==='control-state')){
+     lastControllerState={state:data.state,pending:data.pending||[]};
+     renderController(data.state,data.pending||[]);
+     setControllerStatus('Đã đồng bộ với máy tính',true);
+    }
+   });
+   current.on('close',()=>{
+    clearConnectTimer();controllerConnected=false;
+    setControllerStatus('Kết nối đã đóng · Đang thử lại',false);
+    scheduleControllerReconnect();
+   });
+   current.on('error',e=>{
+    clearConnectTimer();controllerConnected=false;
+    const type=e&&e.type?e.type:'unknown';
+    const detail=e&&e.message?': '+e.message:'';
+    setControllerStatus('Lỗi kết nối ('+type+')'+detail,false);
+    scheduleControllerReconnect();
+   });
+  }catch(e){
+   clearConnectTimer();controllerConnected=false;
+   setControllerStatus('Không thể tạo kết nối: '+(e&&e.message?e.message:'lỗi không xác định'),false);
+   scheduleControllerReconnect();
+  }
+ };
+ setControllerStatus('Đang kết nối máy chủ PeerJS…',false);
  peer=new Peer(undefined,PEER_OPTIONS);
- peer.on('open',connectController);
+ peer.on('open',()=>{setControllerStatus('Đã kết nối máy chủ · Đang tìm máy tính chủ phòng…',false);connectController()});
  peer.on('disconnected',()=>{setControllerStatus('Mất liên lạc với máy chủ · Đang kết nối lại',false);try{peer.reconnect()}catch(e){}scheduleControllerReconnect()});
- peer.on('error',e=>{setControllerStatus('Không thể kết nối: '+(e.type||'lỗi kết nối')+'. Kiểm tra mã giáo viên.',false);scheduleControllerReconnect()});
+ peer.on('error',e=>{
+  const type=e&&e.type?e.type:'unknown',detail=e&&e.message?': '+e.message:'';
+  setControllerStatus('Lỗi máy chủ PeerJS ('+type+')'+detail,false);
+  scheduleControllerReconnect();
+ });
  const act=action=>{if(!connection||!connection.open){setControllerStatus('Chưa kết nối · Lệnh chưa được gửi',false);scheduleControllerReconnect();return}send(connection,{type:'control-action',action})};
  $('controllerTimerStart').addEventListener('click',()=>act({type:'timer-start'}));$('controllerTimerReset').addEventListener('click',()=>act({type:'timer-reset'}));$('controllerRound').addEventListener('change',()=>act({type:'set-round',value:$('controllerRound').value}));$('controllerCaptainVote').addEventListener('click',()=>act({type:'captain-vote'}));$('controllerApprovalMode').value='auto';$('controllerApprovalMode').disabled=true;
- window.addEventListener('beforeunload',()=>{if(controllerRetryTimer)clearTimeout(controllerRetryTimer);if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy()});
+ window.addEventListener('beforeunload',()=>{clearConnectTimer();if(controllerRetryTimer)clearTimeout(controllerRetryTimer);if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy()});
 }
 function renderController(s,pending){
  if(!s)return;
