@@ -59,6 +59,19 @@
     <section id="unsupported" class="panel content hidden"><h2>Không tìm thấy phòng chơi</h2><p class="muted">Hãy quét lại mã QR do giáo viên đang điều khiển phòng cung cấp.</p><a class="btn" href="room.html">Về trang tạo phòng</a></section>
     <p class="room-footnote">Kết nối trực tiếp giữa trình duyệt của giáo viên và thành viên thông qua PeerJS. Thiết bị giáo viên phải giữ trang phòng mở. Mã QR chỉ dùng cho phòng hiện tại; khi giáo viên đóng hoặc tải lại trang, cần tạo mã mới.</p>
   </main>
+  <div id="qrModal" class="qr-modal hidden" role="dialog" aria-modal="true" aria-labelledby="qrModalTitle">
+    <div class="qr-modal-card">
+      <button id="closeQrModal" class="qr-modal-close" type="button" aria-label="Đóng mã QR">×</button>
+      <span class="eyebrow">PHÒNG CHƠI ĐÃ SẴN SÀNG</span>
+      <h2 id="qrModalTitle">HỌC SINH QUÉT MÃ ĐỂ THAM GIA</h2>
+      <p class="qr-modal-instruction">Đưa mã QR này lên màn hình lớn hoặc máy chiếu. Học sinh dùng camera điện thoại để quét.</p>
+      <div id="qrCodeLarge" class="qr-large" aria-label="Mã QR lớn để học sinh quét"></div>
+      <div class="qr-modal-code">MÃ PHÒNG: <strong id="roomCodeLarge">------</strong></div>
+      <a id="joinLinkLarge" class="join-link qr-modal-link" href="#" target="_blank" rel="noopener"></a>
+      <p class="qr-modal-tip">Giữ cửa sổ này mở trong lúc học sinh tham gia. Có thể đóng khung mã để tiếp tục điều khiển phòng.</p>
+      <button id="dismissQrModal" class="btn secondary qr-modal-done" type="button">ĐÃ HIỂN THỊ MÃ QR</button>
+    </div>
+  </div>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="assets/js/team-room.js"></script>
