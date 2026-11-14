@@ -25,7 +25,7 @@
       <div class="section-head"><h2>Bảng điều khiển giáo viên</h2><span id="connectionStatus" class="pill">Chưa mở phòng</span></div>
       <p class="muted">Tạo phòng mới. Giữ trang này mở trong suốt buổi chơi để các thiết bị tiếp tục kết nối.</p>
       <div class="row"><button id="createRoom" class="btn">TẠO PHÒNG VÀ CẤP MÃ</button><button id="closeRoom" class="btn ghost" disabled>Đóng phòng</button></div>
-      <div id="roomShare" class="room-access-codes hidden"><article class="access-code-card student-access-code"><span class="eyebrow">MÃ PHÒNG HỌC SINH</span><strong id="roomCode">--------</strong><p>Học sinh nhập mã này tại trang chủ để tham gia phòng.</p></article><article class="access-code-card teacher-access-code"><span class="eyebrow">MÃ TRUY CẬP GIÁO VIÊN</span><strong id="teacherRoomCodeDisplay">--------</strong><p>Giáo viên nhập mã riêng này qua biểu tượng giáo viên ở trang chủ để mở bảng điều khiển trên điện thoại.</p></article></div>
+      <div id="roomShare" class="room-access-codes hidden"><article class="access-code-card student-access-code"><span class="eyebrow">MÃ PHÒNG HỌC SINH</span><strong id="roomCode">--------</strong><p>Học sinh nhập mã này tại trang chủ để tham gia phòng.</p></article><article class="access-code-card teacher-access-code"><span class="eyebrow">MÃ TRUY CẬP GIÁO VIÊN</span><strong id="teacherRoomCodeDisplay">--------</strong><p>Giáo viên nhập mã riêng này qua biểu tượng giáo viên ở trang chủ để mở bảng điều khiển trên điện thoại.</p></article></div><p id="controllerLinkStatus" class="controller-link-status">Điện thoại điều khiển: chưa kết nối</p>
       <div class="section-head"><h2>Thiết lập đội</h2><span class="muted">Tối đa 4 đội</span></div>
       <div class="team-config">
         <label>Đội 1<input id="teamName0" value="Đội 1" maxlength="24"></label><label>Đội 2<input id="teamName1" value="Đội 2" maxlength="24"></label><label>Đội 3<input id="teamName2" value="Đội 3" maxlength="24"></label><label>Đội 4<input id="teamName3" value="Đội 4" maxlength="24"></label>
@@ -50,6 +50,7 @@
         <button id="joinRoom" class="btn">VÀO PHÒNG</button><p id="joinError" class="error-text" role="alert"></p>
       </div>
       <div id="studentPlay" class="hidden">
+        <div id="studentIdentityBar" class="student-identity-bar"><span class="student-identity-avatar">HS</span><div class="student-identity-copy"><small>THÀNH VIÊN</small><strong id="studentIdentityName">Học sinh</strong></div><span id="studentRoleBadge" class="student-role-badge">THÀNH VIÊN</span></div>
         <div class="student-summary"><div><span class="eyebrow">ĐỘI CỦA BẠN</span><h2 id="studentTeamName">Đội 1</h2></div><div><span class="eyebrow">ĐIỂM HIỆN TẠI</span><div id="studentScore" class="score">0</div></div></div>
         <div id="publicCaptainRoster" class="captain-roster student-captain-roster"></div>
         <div class="question"><span class="eyebrow">HOẠT ĐỘNG ĐANG DIỄN RA</span><h3 id="studentRound">Khởi động</h3><p id="studentTimer" class="muted">Chờ giáo viên bắt đầu.</p></div>
