@@ -230,7 +230,7 @@ function startStudent(){
 }
 
 function startController(){
- show('controllerView');
+ document.body.classList.add('is-mobile-controller');show('controllerView');
  if(!controllerHost||typeof Peer==='undefined'){$('controllerStatus').textContent='Thiếu mã truy cập giáo viên hoặc thư viện kết nối';return}
  const setControllerStatus=(message,connected=false)=>{controllerConnected=connected;$('controllerStatus').textContent=message;$('controllerView').classList.toggle('controller-offline',!connected)};
  const connectController=()=>{if(!peer||peer.destroyed||!peer.open||controllerConnected)return;try{connection=peer.connect(controllerHost,{reliable:true});connection.on('open',()=>{controllerConnected=true;setControllerStatus('Đã đồng bộ với máy tính',true);if(lastControllerState)renderController(lastControllerState.state,lastControllerState.pending||[])});connection.on('data',data=>{if(data.type==='controller-ready'||data.type==='control-state'){lastControllerState={state:data.state,pending:data.pending||[]};renderController(data.state,data.pending||[]);setControllerStatus('Đã đồng bộ với máy tính',true)}});connection.on('close',()=>{setControllerStatus('Mất kết nối · Đang thử kết nối lại',false);scheduleControllerReconnect()});connection.on('error',()=>{setControllerStatus('Kết nối không ổn định · Đang thử lại',false);scheduleControllerReconnect()})}catch(e){setControllerStatus('Không thể kết nối · Đang thử lại',false);scheduleControllerReconnect()}};
