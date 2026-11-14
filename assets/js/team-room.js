@@ -259,7 +259,7 @@ function renderStudentState(data){if(!data||data.type!=='state')return;renderRef
  if(election.open)(data.teams?.[teamIndex]?.members||[]).forEach(m=>{const label=document.createElement('label');label.className='student-choice';const r=document.createElement('input');r.type='radio';r.name='captainCandidate';r.value=m.id;const span=document.createElement('span');span.textContent=m.name;label.append(r,span);candidates.append(label)});
  $('captainCountdown').textContent=election.open?'Còn '+Math.max(0,Math.ceil((election.endsAt-Date.now())/1000))+' giây':'';
  const voted=!!data.captainVotes?.[teamIndex]?.[peer?.id];$('voteCaptain').disabled=!election.open||voted;
- const captain=data.captains?.[teamIndex],isCaptain=captain===peer?.id;
+ const captain=data.captains?.[teamIndex];
  $('captainIdentity').textContent=isCaptain?'Bạn là ĐỘI TRƯỞNG.':(captain?'Đội trưởng: '+(team?.members||[]).find(m=>m.id===captain)?.name:'Đội chưa có đội trưởng.');
  $('captainSubmitPanel').classList.toggle('hidden',!isCaptain||!!data.teamFinals?.[teamIndex]);
  const select=$('captainAnswerSelect'),old=select.value;select.replaceChildren();const empty=document.createElement('option');empty.value='';empty.textContent='Chọn ý kiến của thành viên';select.append(empty);
@@ -268,7 +268,7 @@ function renderStudentState(data){if(!data||data.type!=='state')return;renderRef
 
  const list=$('studentChoiceList'),previousChoice=document.querySelector('input[name="teamChoice"]:checked')?.value;list.replaceChildren();
  if(q.type!=='text'&&Array.isArray(q.options))q.options.forEach((option,i)=>{const label=document.createElement('label');label.className='student-choice';const radio=document.createElement('input');radio.type='radio';radio.name='teamChoice';radio.value=String(i);radio.checked=previousChoice===String(i);const span=document.createElement('span');span.textContent=option;label.append(radio,span);list.append(label)});
- $('studentChoiceList').classList.toggle('hidden',q.type==='text'||!q.options?.length);$('studentTextWrap').classList.toggle('hidden',q.type==='choice');
+ $('studentChoiceList').classList.toggle('hidden',isCaptain||q.type==='text'||!q.options?.length);$('studentTextWrap').classList.toggle('hidden',isCaptain||q.type==='choice');
  const final=data.teamFinals?.[teamIndex];$('sendAnswer').disabled=!!final||!q.text;$('sendAnswer').textContent=final?'ĐỘI ĐÃ CHỐT ĐÁP ÁN':'GỬI Ý KIẾN VÀO PHÒNG ĐỘI';
  const tally=data.teamVotes?.[teamIndex]||{},ballotCount=Object.keys(tally).length,teamMessages=data.teamTexts?.[teamIndex]||[];
  const recent=teamMessages.slice(-4).map(item=>item.name+': '+item.text).join(' | ');
