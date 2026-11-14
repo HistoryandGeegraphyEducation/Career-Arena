@@ -1,8 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),hostId=params.get('join'),controllerHost=params.get('control');
-const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}],iceTransportPolicy:'all',sdpSemantics:'unified-plan'}};
-let peer=null,teacherPeer=null,connection=null,timer=null,controllerRetryTimer=null,controllerConnected=false,lastControllerState=null,selfName='',selfTeamIndex=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='auto',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
+let connection=null,timer=null,controllerConnected=false,lastControllerState=null,selfName='',selfTeamIndex=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='auto',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
 const SUPABASE_CONFIG=window.CAREER_ARENA_SUPABASE||{};
 let supabaseClient=null,controllerChannel=null,studentChannel=null;
 function getSupabaseClient(){
@@ -197,69 +196,7 @@ function onMessage(conn,data){
  if(data.type==='answer'&&Number.isInteger(conn.__team)&&typeof data.text==='string'&&data.text.trim()){submissions.push({id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),team:conn.__team,name:conn.__name,round:currentRound,text:data.text.trim().slice(0,2000),time:Date.now()});broadcast()}
 }
 function makeRoomCode(){const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const bytes=crypto.getRandomValues(new Uint8Array(8));return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')}
-function attachIncoming(peerServer,isController){
- peerServer.on('connection',conn=>{
-  if(isController){ /* Controller transport now uses Supabase Realtime. */
-   conn.__controller=true;
-   controllerConnections.set(conn.peer,conn);
-   const status=$('controllerLinkStatus');
-   const pc=conn.peerConnection||null;
-   let opened=false;
-   let hostTimer=setTimeout(()=>{
-    if(opened||conn.open)return;
-    const p=conn.peerConnection||pc;
-    const detail=p?'ICE '+p.iceConnectionState+' · Peer '+p.connectionState:'Chưa lấy được trạng thái PeerConnection';
-    if(status)status.textContent='Điện thoại đã gửi yêu cầu nhưng kênh dữ liệu chưa mở · '+detail;
-   },30000);
-   const updateIce=()=>{
-    const p=conn.peerConnection||pc;
-    if(!status||!p||opened)return;
-    const ice=p.iceConnectionState||'unknown';
-    if(ice==='failed'||ice==='disconnected'){
-     status.textContent='WebRTC '+ice+' · Đang chờ thiết lập lại kênh dữ liệu…';
-    }
-   };
-   if(pc){
-    pc.addEventListener('iceconnectionstatechange',updateIce);
-    pc.addEventListener('connectionstatechange',updateIce);
-   }
-   if(status)status.textContent='Đã nhận yêu cầu từ điện thoại · Đang thiết lập kênh dữ liệu…';
-   conn.on('open',()=>{
-    opened=true;
-    clearTimeout(hostTimer);
-    if(status)status.textContent='Điện thoại điều khiển: đã đồng bộ';
-    send(conn,{type:'controller-ready',state:state(),pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});
-   });
-   conn.on('data',d=>onMessage(conn,d));
-   conn.on('close',()=>{
-    clearTimeout(hostTimer);
-    if(pc){pc.removeEventListener('iceconnectionstatechange',updateIce);pc.removeEventListener('connectionstatechange',updateIce)}
-    connections.delete(conn.peer);controllerConnections.delete(conn.peer);
-    if(status)status.textContent=controllerConnections.size?'Điện thoại điều khiển: '+controllerConnections.size+' thiết bị đang kết nối':'Điện thoại điều khiển: chưa kết nối';
-    broadcast();
-   });
-   conn.on('error',e=>{
-    clearTimeout(hostTimer);
-    if(status)status.textContent='Lỗi kênh điều khiển: '+(e?.type||e?.message||'không xác định');
-    connections.delete(conn.peer);controllerConnections.delete(conn.peer);broadcast();
-   });
-  }else{
-   connections.set(conn.peer,conn);
-   conn.on('open',()=>send(conn,{type:'room-ready'}));
-   conn.on('data',d=>onMessage(conn,d));
-   conn.on('close',()=>{
-    connections.delete(conn.peer);pendingRequests.delete(conn.peer);
-    teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));
-    renderPending();broadcast();
-   });
-   conn.on('error',e=>{
-    connections.delete(conn.peer);pendingRequests.delete(conn.peer);
-    teams.forEach(t=>t.members=t.members.filter(m=>m.id!==conn.peer));
-    renderPending();broadcast();
-   });
-  }
- });
-}function startTeacher(){
+function startTeacher(){
  if(!getSupabaseClient()){$('connectionStatus').textContent='Thiếu cấu hình Supabase Realtime';return}
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang mở các kênh kết nối…';
  const studentCode=makeRoomCode(),teacherCode=makeRoomCode();
