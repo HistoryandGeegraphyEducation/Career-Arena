@@ -283,9 +283,10 @@ function attachIncoming(peerServer,isController){
 function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;removeStudentChannel();removeControllerChannel();connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
 function startStudent(){
  show('studentView');if(!hostId){hide('studentView');show('unsupported');return}
- let joining=false,clientId=null;
+ let joining=false,clientId=null,joinTimer=null;
  const client=getSupabaseClient();
  const failJoin=message=>{
+  if(joinTimer){clearTimeout(joinTimer);joinTimer=null}
   joining=false;
   if(connection){try{connection.close()}catch(e){}connection=null}
   $('joinError').textContent=message;$('joinRoom').disabled=false;
@@ -298,6 +299,7 @@ function startStudent(){
   if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
   if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
   if(data&&data.type==='joined'){
+   if(joinTimer){clearTimeout(joinTimer);joinTimer=null}
    joining=false;selfName=String(data.name||$('studentName').value||'Học sinh');
    selfTeamIndex=Number(data.team);
    hide('joinForm');show('studentPlay');
@@ -316,6 +318,7 @@ function startStudent(){
   if(!name){$('joinError').textContent='Hãy nhập tên thành viên.';return}
   if(!client){$('joinError').textContent='Không tải được Supabase. Hãy tải lại trang.';return}
   joining=true;$('joinRoom').disabled=true;
+  joinTimer=setTimeout(()=>failJoin('Không nhận được phản hồi từ laptop. Kiểm tra mã phòng và bảo đảm giáo viên vẫn đang mở phòng.'),15000);
   $('joinError').textContent='Đang mở kết nối tới phòng…';
   $('studentStatus').textContent='Đang kết nối';$('studentStatus').style.background='';
   try{
