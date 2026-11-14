@@ -134,3 +134,27 @@
 .is-mobile-controller #controllerView{margin-top:0}
 
 .reflex-option.selected{border:2px solid #f5c45c;background:#174b78;box-shadow:0 0 0 2px rgba(245,196,92,.18)}.reflex-phase-status{margin:0;padding:10px 12px;border-radius:10px;background:#0b2a5a;color:#d8efff;font-weight:800;font-variant-numeric:tabular-nums}.reflex-captain-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.reflex-captain-actions button{min-height:48px}@media(max-width:420px){.reflex-captain-actions{grid-template-columns:1fr}}
+
+
+/* Career points skill shop */
+.career-skill-shop{margin:18px 0;padding:clamp(14px,2.2vw,22px);border:1px solid rgba(86,190,255,.5);border-radius:20px;background:linear-gradient(145deg,#0a2a5c 0%,#061735 72%);box-shadow:0 16px 38px rgba(0,0,0,.2)}
+.skill-shop-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
+.skill-shop-heading h2{margin:5px 0 0;color:#fff;font-size:clamp(1.05rem,2.8vw,1.45rem)}
+.skill-wallet{display:grid;gap:3px;min-width:125px;padding:10px 14px;border:1px solid rgba(255,211,106,.55);border-radius:13px;background:rgba(77,57,14,.45);text-align:center}
+.skill-wallet span{color:#ffe3a0;font-size:.65rem;font-weight:900;letter-spacing:.08em}
+.skill-wallet strong{color:#ffda75;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.skill-shop-group{margin-top:20px}
+.skill-shop-group>h3{display:flex;align-items:center;gap:9px;margin:0 0 11px;color:#eaf6ff;font-size:.92rem;letter-spacing:.08em}
+.skill-group-mark{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;color:#071a35;font-size:.72rem;font-weight:1000}
+.speed-mark{background:#ffd36b}.accuracy-mark{background:#65e2ce}.strategy-mark{background:#c4a2ff}
+.skill-shop-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.skill-card{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;min-width:0;min-height:105px;padding:12px;border:1px solid rgba(99,171,226,.35);border-radius:14px;background:linear-gradient(150deg,rgba(17,55,101,.96),rgba(7,27,60,.98))}
+.skill-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#123c68;border:1px solid rgba(111,199,255,.35)}
+.skill-icon svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.speed-icon{color:#ffd36b;background:rgba(128,87,17,.25)}.timer-icon{color:#72dcff}.finish-icon{color:#ff9e72}.focus-icon{color:#b7f078}
+.expert-icon{color:#7ce5d4}.filter-icon{color:#84c4ff}.clue-icon{color:#ffcf76}.verify-icon{color:#a8a2ff}
+.pressure-icon{color:#ff9f9f}.signal-icon{color:#f2a4ff}.shield-icon{color:#8de5b5}.backup-icon{color:#80d6ff}
+.skill-card-copy{min-width:0}.skill-card-copy h4{margin:0 0 5px;color:#fff;font-size:.88rem;line-height:1.2}.skill-card-copy p{margin:0;color:#b9d3ed;font-size:.75rem;line-height:1.35}
+.skill-cost{grid-column:2;justify-self:start;padding:4px 8px;border:1px solid rgba(255,211,106,.4);border-radius:7px;background:rgba(91,65,15,.42);color:#ffdf8a;font-size:.68rem;font-weight:900;letter-spacing:.04em}
+@media(max-width:900px){.skill-shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.career-skill-shop{padding:13px}.skill-shop-heading{align-items:flex-start}.skill-wallet{min-width:105px;padding:8px}.skill-shop-grid{grid-template-columns:1fr}.skill-card{grid-template-columns:46px minmax(0,1fr) auto;min-height:82px;padding:10px}.skill-cost{grid-column:3;grid-row:1;align-self:center}.skill-card-copy h4{font-size:.84rem}.skill-card-copy p{font-size:.72rem}}
