@@ -58,24 +58,9 @@ function renderConsensus(){
   }
   const texts=teamTexts[index]||[];
   if(texts.length){const list=document.createElement('div');list.className='consensus-texts';const label=document.createElement('strong');label.textContent='Ý kiến văn bản ('+texts.length+')';list.append(label);texts.slice(-5).forEach(item=>{const p=document.createElement('p');p.textContent=item.name+': '+item.text;list.append(p)});card.append(list)}
-  const final=teamFinals[index];
-  if(final){const result=document.createElement('p');result.className='consensus-final';result.textContent='ĐÃ CHỐT: '+final.answer+' · '+new Date(final.time).toLocaleTimeString('vi-VN');card.append(result)}
-  else{const actions=document.createElement('div');actions.className='consensus-actions';
-   const select=document.createElement('select');select.setAttribute('aria-label','Chọn đáp án chốt cho '+team.name);
-   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Chọn đáp án chung';select.append(placeholder);
-   if(questionType!=='text')questionOptions.forEach((option,i)=>{const opt=document.createElement('option');opt.value='choice:'+i;opt.textContent=option;select.append(opt)});
-   if(questionType!=='choice'){const opt=document.createElement('option');opt.value='text';opt.textContent='Chốt nội dung văn bản';select.append(opt)}
-   const input=document.createElement('input');input.type='text';input.maxLength=2000;input.placeholder='Nội dung văn bản thống nhất (nếu có)';
-   const button=document.createElement('button');button.type='button';button.className='btn pending-approve';button.textContent='CHỐT ĐÁP ÁN ĐỘI';button.addEventListener('click',()=>{
-    const value=select.value;if(!value){$('questionStatus').textContent='Hãy chọn loại đáp án cần chốt cho '+team.name+'.';return}
-    let answer='';if(value.startsWith('choice:'))answer=questionOptions[Number(value.split(':')[1])]||'';else answer=input.value.trim();
-    if(!answer){$('questionStatus').textContent='Hãy nhập nội dung văn bản trước khi chốt.';return}
-    teamFinals[index]={answer,time:Date.now(),votes:{...teamVotes[index]},textCount:teamTexts[index].length};
-    submissions.push({id:'team-'+index+'-'+Date.now().toString(36),team:index,name:'Đáp án thống nhất',round:currentRound,text:answer,time:Date.now(),final:true});
-    broadcast();
-   });
-   actions.append(select);if(questionType!=='choice')actions.append(input);actions.append(button);card.append(actions);
-  }
+  const captain=captains[index],captainMember=team.members.find(m=>m.id===captain);
+  const cap=document.createElement('p');cap.className='captain-identity';cap.textContent=captainMember?'Đội trưởng: '+captainMember.name:'Chưa bầu đội trưởng';card.append(cap);
+  const final=teamFinals[index];if(final){const result=document.createElement('p');result.className='consensus-final';result.textContent='ĐÃ GỬI · Hạng '+final.rank+' · '+final.points+' điểm: '+final.answer;card.append(result)}
   const foot=document.createElement('small');foot.className='muted';foot.textContent='Lượt lựa chọn: '+total+' / '+team.members.length;card.append(foot);root.append(card);
  });
 }
@@ -85,7 +70,7 @@ function renderTeacher(){
  $('memberCount').textContent=teams.reduce((n,t)=>n+t.members.length,0)+' thành viên';$('submissionCount').textContent=submissions.length+' lượt gửi';$('scoreboard').replaceChildren();
  teams.forEach(t=>{const card=document.createElement('article');card.className='score-card';const h=document.createElement('h3');h.textContent=t.name;const score=document.createElement('div');score.className='score';score.textContent=t.score+' điểm';const members=document.createElement('small');members.textContent=t.members.length+' thành viên đang kết nối';card.append(h,score,members);$('scoreboard').append(card)});
  renderConsensus();const race=$('raceResults');if(race){race.replaceChildren();raceOrder.forEach(x=>{const row=document.createElement('div');row.className='race-result';row.textContent=(teams[x.team].name)+' · Hạng '+x.rank+' · '+x.points+' điểm · '+x.answer;race.append(row)})}$('submissions').replaceChildren();if(!submissions.length){const p=document.createElement('p');p.className='muted';p.textContent='Chưa có câu trả lời được gửi.';$('submissions').append(p);return}
- [...submissions].reverse().forEach(item=>{const card=document.createElement('article');card.className='submission';const head=document.createElement('div');head.className='submission-head';const who=document.createElement('strong');who.textContent=(teams[item.team]?.name||'Đội')+' · '+item.name+' · '+item.round;const time=document.createElement('small');time.className='muted';time.textContent=new Date(item.time).toLocaleTimeString('vi-VN');head.append(who,time);const body=document.createElement('p');body.textContent=item.text;const actions=document.createElement('div');actions.className='submission-actions';[1,2,5].forEach(points=>{const b=document.createElement('button');b.textContent='+'+points+' điểm';b.disabled=awarded.has(item.id);b.addEventListener('click',()=>award(item.id,points));actions.append(b)});card.append(head,body,actions);$('submissions').append(card)})
+ [...submissions].reverse().forEach(item=>{const card=document.createElement('article');card.className='submission';const head=document.createElement('div');head.className='submission-head';const who=document.createElement('strong');who.textContent=(teams[item.team]?.name||'Đội')+' · '+item.name+' · '+item.round;const time=document.createElement('small');time.className='muted';time.textContent=new Date(item.time).toLocaleTimeString('vi-VN');head.append(who,time);const body=document.createElement('p');body.textContent=item.text;const actions=document.createElement('div');actions.className='submission-actions';if(item.final){const rank=document.createElement('strong');rank.textContent='Hạng '+item.rank+' · '+item.points+' điểm (tự động)';actions.append(rank)};card.append(head,body,actions);$('submissions').append(card)})
 }
 function award(id,points){if(awarded.has(id))return;const item=submissions.find(s=>s.id===id);if(!item)return;teams[item.team].score+=points;awarded.add(id);broadcast()}
 function onMessage(conn,data){
