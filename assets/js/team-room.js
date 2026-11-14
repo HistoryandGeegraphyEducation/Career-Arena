@@ -276,7 +276,7 @@ function startStudent(){
      }
     }
    };
-   studentChannel=client.channel(studentTopic(hostId),{config:{broadcast:{self:false},private:false}});
+   studentChannel=client.channel(studentTopic(hostId),{config:{broadcast:{self:false,ack:true},private:false}});
    studentChannel.on('broadcast',{event:'host-message'},({payload})=>{
     const item=payload||{};
     if(item.target!==clientId||!item.data)return;
