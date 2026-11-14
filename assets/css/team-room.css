@@ -70,3 +70,10 @@
   object-fit:contain!important;
   image-rendering:pixelated;
 }
+
+.room-access-codes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.access-code-card{padding:20px;border-radius:17px;border:1px solid rgba(92,220,255,.55);background:linear-gradient(145deg,#092f6e,#061a46);min-width:0}
+.access-code-card strong{display:block;margin:8px 0;color:#ffe08b;font-size:clamp(1.8rem,5vw,2.7rem);letter-spacing:.16em;overflow-wrap:anywhere}
+.access-code-card p{margin:0;color:#c6ddf7;line-height:1.55;font-size:.88rem}
+.teacher-access-code{border-color:rgba(255,211,106,.65)}
+@media(max-width:620px){.room-access-codes{grid-template-columns:1fr}.access-code-card{padding:17px}}
