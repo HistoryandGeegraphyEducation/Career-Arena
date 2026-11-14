@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id),params=new URLSearchParams(location.sear
 const PEER_OPTIONS={host:'0.peerjs.com',port:443,path:'/',secure:true,debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}],iceTransportPolicy:'all',sdpSemantics:'unified-plan'}};
 let peer=null,teacherPeer=null,connection=null,timer=null,controllerRetryTimer=null,controllerConnected=false,lastControllerState=null,selfName='',selfTeamIndex=null,seconds=120,reflex={active:false,index:-1,startedAt:0,completed:{}},reflexElapsed=[0,0,0,0],reflexPoints=[0,0,0,0],reflexRoundResults=[],approvalMode='auto',currentQuestion='',questionType='both',questionOptions=[],teamVotes=[{}, {}, {}, {}],teamTexts=[[],[],[],[]],teamFinals=[null,null,null,null],captainElection={open:false,endsAt:0,closed:false},captainVotes=[{},{},{},{}],captains=[null,null,null,null],raceOrder=[],raceAwarded=new Set(),teams=['Đội 1','Đội 2','Đội 3','Đội 4'].map(name=>({name,score:0,members:[]})),connections=new Map(),controllerConnections=new Map(),pendingRequests=new Map(),submissions=[],currentRound='Khởi động',awarded=new Set();
 const SUPABASE_CONFIG=window.CAREER_ARENA_SUPABASE||{};
-let supabaseClient=null,controllerChannel=null;
+let supabaseClient=null,controllerChannel=null,studentChannel=null;
 function getSupabaseClient(){
  if(supabaseClient)return supabaseClient;
  if(!SUPABASE_CONFIG.url||!SUPABASE_CONFIG.publishableKey||!window.supabase?.createClient)return null;
@@ -12,6 +12,42 @@ function getSupabaseClient(){
  return supabaseClient;
 }
 function controllerTopic(code){return 'career-arena-control:'+String(code||'').toUpperCase()}
+function studentTopic(code){return 'career-arena-students:'+String(code||'').toUpperCase()}
+function removeStudentChannel(){
+ if(supabaseClient&&studentChannel){supabaseClient.removeChannel(studentChannel).catch(()=>{});}
+ studentChannel=null;
+}
+function openHostStudentChannel(code,onReady,onError){
+ const client=getSupabaseClient();if(!client){onError('Thiếu cấu hình Supabase.');return}
+ studentChannel=client.channel(studentTopic(code),{config:{broadcast:{self:false},private:false}});
+ studentChannel.on('broadcast',{event:'student-message'},({payload})=>{
+  const message=payload||{},clientId=String(message.clientId||'');
+  if(!clientId)return;
+  if(message.data?.type==='student-leave'){
+   const existing=connections.get(clientId);
+   if(existing){connections.delete(clientId);pendingRequests.delete(clientId);teams.forEach(t=>t.members=t.members.filter(m=>m.id!==clientId));renderPending();broadcast()}
+   return;
+  }
+  let conn=connections.get(clientId);
+  if(!conn){
+   conn={peer:clientId,open:true,__realtime:true,send(data){
+    if(!studentChannel)return Promise.resolve('error');
+    return studentChannel.send({type:'broadcast',event:'host-message',payload:{target:clientId,data}});
+   },close(){
+    this.open=false;connections.delete(clientId);pendingRequests.delete(clientId);
+    teams.forEach(t=>t.members=t.members.filter(m=>m.id!==clientId));renderPending();broadcast();
+   }};
+   connections.set(clientId,conn);
+  }
+  onMessage(conn,message.data);
+ });
+ let settled=false;
+ const timeout=setTimeout(()=>{if(!settled){settled=true;onError('Hết thời gian mở kênh học sinh trên Supabase Realtime.')}},20000);
+ studentChannel.subscribe(status=>{
+  if(status==='SUBSCRIBED'&&!settled){settled=true;clearTimeout(timeout);onReady()}
+  else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&!settled){settled=true;clearTimeout(timeout);onError('Supabase Realtime trả về '+status)}
+ });
+}
 function publishControllerMessage(payload){
  if(!controllerChannel)return;
  controllerChannel.send({type:'broadcast',event:'controller-message',payload}).catch(()=>{});
@@ -106,7 +142,7 @@ function renderCaptainRoster(){const root=$('captainRoster');if(!root)return;roo
 const reflexJobs=[["Bác sĩ","https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=1600&q=85",["Bác sĩ","Giáo viên","Kỹ sư","Đầu bếp"],0],["Giáo viên","https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=85",["Nhà báo","Giáo viên","Bác sĩ","Phi công"],1],["Cảnh sát","https://images.unsplash.com/photo-1453873531674-2151bcd01707?auto=format&fit=crop&w=1600&q=85",["Lính cứu hỏa","Cảnh sát","Tài xế","Thợ điện"],1],["Lính cứu hỏa","https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=85",["Công nhân xây dựng","Bác sĩ","Lính cứu hỏa","Nông dân"],2],["Đầu bếp","https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=1600&q=85",["Đầu bếp","Thợ may","Giáo viên","Phi công"],0],["Công nhân xây dựng","https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1600&q=85",["Thợ điện","Nông dân","Công nhân xây dựng","Cảnh sát"],2],["Nông dân","https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=85",["Tài xế","Nông dân","Đầu bếp","Bác sĩ"],1],["Thợ điện","https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1600&q=85",["Thợ may","Thợ điện","Phi công","Giáo viên"],1],["Phi công","https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=85",["Phi công","Cảnh sát","Bác sĩ","Tài xế"],0],["Tài xế","https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1600&q=85",["Nông dân","Thợ điện","Tài xế","Đầu bếp"],2],["Thợ may","https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&w=1600&q=85",["Thợ may","Giáo viên","Cảnh sát","Bác sĩ"],0],["Nhân viên bưu điện","https://images.unsplash.com/photo-1580674285054-bed31e145f59?auto=format&fit=crop&w=1600&q=85",["Phi công","Nhân viên bưu điện","Tài xế","Thợ điện"],1]];
 function startReflexQuestion(index){if(index>=reflexJobs.length){reflex.active=false;reflex.index=-1;$('reflexStatus').textContent='Đã hoàn thành 12 hình ảnh.';$('reflexNext').disabled=true;broadcast();return}reflex={active:true,index,startedAt:Date.now(),completed:{}};$('reflexStatus').textContent='Câu '+(index+1)+' / 12 · '+reflexJobs[index][0];$('reflexNext').disabled=false;broadcast()}
 function renderReflexTeacher(){const live=$('reflexLiveBoard'),board=$('reflexAchievements');if(!live||!board)return;const rows=teams.map((t,i)=>({name:t.name,done:!!reflex.completed?.[i],points:reflexPoints[i],time:reflexElapsed[i]})).sort((a,b)=>(b.points-a.points)||(a.time-b.time));live.replaceChildren();rows.forEach(r=>{const row=document.createElement('div');row.className='reflex-live-row';const name=document.createElement('strong');name.textContent=r.name;const track=document.createElement('div');track.className='reflex-track';const fill=document.createElement('span');fill.style.width=Math.max(4,Math.min(100,r.points*2))+'%';track.append(fill);const label=document.createElement('small');label.textContent=r.done?'Đã trả lời':'Đang thực hiện';row.append(name,track,label);live.append(row)});board.replaceChildren();rows.forEach((r,i)=>{const row=document.createElement('div');row.className='reflex-achievement-row';const rank=document.createElement('b');rank.textContent=String(i+1).padStart(2,'0');const name=document.createElement('strong');name.textContent=r.name;const time=document.createElement('span');time.textContent=(r.time/1000).toFixed(2)+' giây';const points=document.createElement('b');points.textContent=r.points+' điểm';row.append(rank,name,time,points);board.append(row)})}
-function renderReflexStudent(data){const panel=$('reflexStudentPanel');if(!panel)return;const r=data.reflex||{};panel.classList.toggle('hidden',!r.active);const legacy=document.querySelector('.student-discussion');if(legacy)legacy.classList.toggle('hidden',!!r.active);if(!r.active){$('reflexImageStage').classList.add('hidden');return;}const job=reflexJobs[r.index];if(!job)return;const teamIndex=Number($('studentTeam').value),isCaptain=data.captains?.[teamIndex]===peer?.id;$('reflexLeaderControls').classList.toggle('hidden',!isCaptain);$('reflexMemberQuiz').classList.toggle('hidden',isCaptain);$('reflexQuestionNumber').textContent='CÂU '+(r.index+1)+' / 12';$('reflexImage').src=job[1];const reveal=()=>{const stage=$('reflexImageStage');stage.classList.remove('hidden');clearTimeout(window.__reflexHideTimer);window.__reflexHideTimer=setTimeout(()=>stage.classList.add('hidden'),isCaptain?3000:5000)};const revealKey=String(r.startedAt)+':'+String(r.index);if(window.__reflexShownKey!==revealKey){window.__reflexShownKey=revealKey;$('reflexImageStage').classList.add('hidden');const count=$('reflexCountdown');count.classList.remove('hidden');count.textContent='3';let n=3;const tick=setInterval(()=>{n--;if(n<=0){clearInterval(tick);count.classList.add('hidden');reveal()}else count.textContent=String(n)},1000)}$('reflexLeaderReveal').onclick=reveal;$('reflexMemberReveal').onclick=reveal;const options=$('reflexOptions');options.replaceChildren();job[2].forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='reflex-option';b.textContent=String.fromCharCode(65+i)+'. '+label;b.disabled=!!r.completed?.[teamIndex];b.onclick=()=>send(connection,{type:'reflex-answer',question:r.index,option:i});options.append(b)});$('reflexMemberFeedback').textContent=r.completed?.[teamIndex]?'Đội đã trả lời câu này.':'Chọn một đáp án. Đội được ghi nhận khi chọn đúng.'}
+function renderReflexStudent(data){const panel=$('reflexStudentPanel');if(!panel)return;const r=data.reflex||{};panel.classList.toggle('hidden',!r.active);const legacy=document.querySelector('.student-discussion');if(legacy)legacy.classList.toggle('hidden',!!r.active);if(!r.active){$('reflexImageStage').classList.add('hidden');return;}const job=reflexJobs[r.index];if(!job)return;const teamIndex=Number($('studentTeam').value),isCaptain=data.captains?.[teamIndex]===connection?.peer;$('reflexLeaderControls').classList.toggle('hidden',!isCaptain);$('reflexMemberQuiz').classList.toggle('hidden',isCaptain);$('reflexQuestionNumber').textContent='CÂU '+(r.index+1)+' / 12';$('reflexImage').src=job[1];const reveal=()=>{const stage=$('reflexImageStage');stage.classList.remove('hidden');clearTimeout(window.__reflexHideTimer);window.__reflexHideTimer=setTimeout(()=>stage.classList.add('hidden'),isCaptain?3000:5000)};const revealKey=String(r.startedAt)+':'+String(r.index);if(window.__reflexShownKey!==revealKey){window.__reflexShownKey=revealKey;$('reflexImageStage').classList.add('hidden');const count=$('reflexCountdown');count.classList.remove('hidden');count.textContent='3';let n=3;const tick=setInterval(()=>{n--;if(n<=0){clearInterval(tick);count.classList.add('hidden');reveal()}else count.textContent=String(n)},1000)}$('reflexLeaderReveal').onclick=reveal;$('reflexMemberReveal').onclick=reveal;const options=$('reflexOptions');options.replaceChildren();job[2].forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='reflex-option';b.textContent=String.fromCharCode(65+i)+'. '+label;b.disabled=!!r.completed?.[teamIndex];b.onclick=()=>send(connection,{type:'reflex-answer',question:r.index,option:i});options.append(b)});$('reflexMemberFeedback').textContent=r.completed?.[teamIndex]?'Đội đã trả lời câu này.':'Chọn một đáp án. Đội được ghi nhận khi chọn đúng.'}
 function renderTeacher(){
  renderReflexTeacher();
  $('memberCount').textContent=teams.reduce((n,t)=>n+t.members.length,0)+' thành viên';$('submissionCount').textContent=submissions.length+' lượt gửi';$('scoreboard').replaceChildren();
@@ -224,91 +260,101 @@ function attachIncoming(peerServer,isController){
   }
  });
 }function startTeacher(){
- if(typeof Peer==='undefined'){$('connectionStatus').textContent='Không tải được thư viện kết nối';return}
  if(!getSupabaseClient()){$('connectionStatus').textContent='Thiếu cấu hình Supabase Realtime';return}
- $('createRoom').disabled=true;$('connectionStatus').textContent='Đang tạo phòng…';
+ $('createRoom').disabled=true;$('connectionStatus').textContent='Đang mở các kênh kết nối…';
  const studentCode=makeRoomCode(),teacherCode=makeRoomCode();
- peer=new Peer(studentCode,PEER_OPTIONS);
  let studentReady=false,controllerReady=false,failed=false;
- const finishSetup=()=>{if(failed||!studentReady||!controllerReady)return;$('roomCode').textContent=studentCode;$('teacherRoomCodeDisplay').textContent=teacherCode;show('roomShare');$('createRoom').disabled=false;$('closeRoom').disabled=false;$('connectionStatus').textContent='Phòng đang mở';broadcast()};
- peer.on('open',()=>{studentReady=true;finishSetup()});
- attachIncoming(peer,false);
- peer.on('error',e=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở phòng học sinh: '+(e.type||'lỗi kết nối');$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}peer=null;removeControllerChannel()});
- openHostControllerChannel(teacherCode,()=>{controllerReady=true;finishSetup()},message=>{if(failed)return;failed=true;$('connectionStatus').textContent='Không thể mở kênh điều khiển: '+message;$('createRoom').disabled=false;try{peer?.destroy()}catch(err){}peer=null;removeControllerChannel()});
+ const fail=message=>{
+  if(failed)return;failed=true;
+  $('connectionStatus').textContent=message;
+  $('createRoom').disabled=false;$('closeRoom').disabled=true;
+  removeStudentChannel();removeControllerChannel();
+ };
+ const finishSetup=()=>{
+  if(failed||!studentReady||!controllerReady)return;
+  $('roomCode').textContent=studentCode;$('teacherRoomCodeDisplay').textContent=teacherCode;
+  show('roomShare');$('createRoom').disabled=false;$('closeRoom').disabled=false;
+  $('connectionStatus').textContent='Phòng đang mở · Học sinh có thể tham gia';
+  broadcast();
+ };
+ openHostStudentChannel(studentCode,()=>{studentReady=true;finishSetup()},message=>fail('Không thể mở kênh học sinh: '+message));
+ openHostControllerChannel(teacherCode,()=>{controllerReady=true;finishSetup()},message=>fail('Không thể mở kênh điều khiển: '+message));
 }
-function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;if(peer)peer.destroy();if(teacherPeer)teacherPeer.destroy();peer=null;teacherPeer=null;removeControllerChannel();connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
+function closeTeacher(){controllerConnections.clear();if(timer)clearInterval(timer);timer=null;removeStudentChannel();removeControllerChannel();connections.clear();pendingRequests.clear();renderPending();teams.forEach(t=>t.members=[]);$('connectionStatus').textContent='Đã đóng phòng';$('createRoom').disabled=false;$('closeRoom').disabled=true;hide('roomShare');renderTeacher()}
 function startStudent(){
  show('studentView');if(!hostId){hide('studentView');show('unsupported');return}
- let joinTimer=null,joining=false,joinSent=false;
- const clearJoinTimer=()=>{if(joinTimer){clearTimeout(joinTimer);joinTimer=null}};
- const failJoin=message=>{clearJoinTimer();joining=false;if(connection){try{connection.close()}catch(e){}connection=null}if(peer){try{peer.destroy()}catch(e){}peer=null}$('joinError').textContent=message;$('joinRoom').disabled=false;$('studentStatus').textContent='Chưa kết nối';$('studentStatus').style.background='';};
+ let joining=false,clientId=null;
+ const client=getSupabaseClient();
+ const failJoin=message=>{
+  joining=false;
+  if(connection){try{connection.close()}catch(e){}connection=null}
+  $('joinError').textContent=message;$('joinRoom').disabled=false;
+  $('studentStatus').textContent='Chưa kết nối';$('studentStatus').style.background='';
+ };
+ const receiveHostMessage=data=>{
+  if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}
+  if(data&&data.type==='captain-vote-result'){$('captainVoteMessage').textContent=data.message;return}
+  if(data&&data.type==='captain-submit-result'){$('captainSubmitStatus').textContent=data.message;return}
+  if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
+  if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
+  if(data&&data.type==='joined'){
+   joining=false;selfName=String(data.name||$('studentName').value||'Học sinh');
+   selfTeamIndex=Number(data.team);
+   hide('joinForm');show('studentPlay');
+   $('studentTeamName').textContent=data.state?.teams?.[data.team]?.name||$('studentTeam').selectedOptions[0].textContent;
+   $('studentStatus').textContent='Đã vào phòng';$('studentStatus').style.background='#0c633d';
+   $('joinError').textContent='';
+   if(data.state)renderStudentState(data.state);
+   return;
+  }
+  if(data&&data.type==='join-error'){failJoin(data.message||'Không thể tham gia phòng.');return}
+  renderStudentState(data);
+ };
  $('joinRoom').addEventListener('click',()=>{
   if(joining)return;
   const name=$('studentName').value.trim(),team=Number($('studentTeam').value);
   if(!name){$('joinError').textContent='Hãy nhập tên thành viên.';return}
-  if(typeof Peer==='undefined'){$('joinError').textContent='Không tải được thư viện PeerJS. Hãy kiểm tra Internet rồi tải lại trang.';return}
-  joining=true;$('joinRoom').disabled=true;$('joinError').textContent='Đang kết nối tới máy chủ…';$('studentStatus').textContent='Đang kết nối';$('studentStatus').style.background='';
+  if(!client){$('joinError').textContent='Không tải được Supabase. Hãy tải lại trang.';return}
+  joining=true;$('joinRoom').disabled=true;
+  $('joinError').textContent='Đang mở kết nối tới phòng…';
+  $('studentStatus').textContent='Đang kết nối';$('studentStatus').style.background='';
   try{
-   peer=new Peer(undefined,PEER_OPTIONS);
-   joinTimer=setTimeout(()=>failJoin('Quá thời gian kết nối máy chủ PeerJS. Hãy tải lại trang hoặc thử mạng Internet khác.'),15000);
-   peer.on('open',()=>{
-    clearJoinTimer();$('joinError').textContent='Đã kết nối máy chủ. Đang gửi yêu cầu vào phòng của giáo viên…';
-    try{
-     connection=peer.connect(hostId,{reliable:true});
-     joinTimer=setTimeout(()=>failJoin('Không nhận được phản hồi từ phòng giáo viên. Hãy kiểm tra giáo viên đã tạo phòng và đang giữ trang phòng mở.'),15000);
-     connection.on('open',()=>{
-      if(joinSent)return;
-      joinSent=true;
-      $('joinError').textContent='Đã kết nối với phòng. Đang hoàn tất tham gia…';
-      send(connection,{type:'join',name,team});
-     });
-     connection.on('data',data=>{
-      if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}
-      if(data&&data.type==='captain-vote-result'){$('captainVoteMessage').textContent=data.message;return}
-      if(data&&data.type==='captain-submit-result'){$('captainSubmitStatus').textContent=data.message;return}
-      if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
-      if(data&&data.type==='response-locked'){$('sendStatus').textContent=data.message||'Đội đã chốt.';$('sendAnswer').disabled=true;return}
-      if(data&&data.type==='join-pending'){
-       clearJoinTimer();
-       $('joinError').textContent='Đang hoàn tất tham gia phòng…';
-       $('studentStatus').textContent='Đang kết nối';
-       $('studentStatus').style.background='';
-       return;
-      }
-      if(data&&data.type==='room-ready')return;
-      if(data&&data.type==='joined'){
-       clearJoinTimer();joining=false;selfName=String(data.name||$('studentName').value||'Học sinh');selfTeamIndex=Number(data.team);
-       hide('joinForm');show('studentPlay');
-       $('studentTeamName').textContent=data.state?.teams?.[data.team]?.name||$('studentTeam').selectedOptions[0].textContent;
-       $('studentStatus').textContent='Đã vào phòng';$('studentStatus').style.background='#0c633d';
-       $('joinError').textContent='';
-       if(data.state)renderStudentState(data.state);
-       return;
-      }
-      if(data&&data.type==='join-error'){failJoin(data.message||'Không thể tham gia phòng.');return}
-      renderStudentState(data);
-     });
-     connection.on('close',()=>{
-      clearJoinTimer();joining=false;
-      $('studentStatus').textContent='Mất kết nối';$('studentStatus').style.background='#71342c';
-      $('sendStatus').textContent='Phòng đã đóng hoặc kết nối với giáo viên bị ngắt.';
-     });
-     connection.on('error',e=>failJoin('Lỗi kết nối tới phòng: '+(e&&e.message?e.message:'không xác định')+'. Hãy nhập lại mã phòng do giáo viên cung cấp.'));
-    }catch(e){failJoin('Không thể gửi yêu cầu vào phòng: '+(e&&e.message?e.message:'lỗi không xác định'))}
+   removeStudentChannel();
+   clientId=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+   connection={
+    peer:clientId,open:false,onData:null,
+    send(data){
+     if(!studentChannel||!this.open)return Promise.resolve('error');
+     return studentChannel.send({type:'broadcast',event:'student-message',payload:{clientId,data}});
+    },
+    on(event,handler){if(event==='data')this.onData=handler;return this},
+    close(){
+     this.open=false;
+     if(studentChannel){
+      studentChannel.send({type:'broadcast',event:'student-message',payload:{clientId,data:{type:'student-leave'}}}).catch(()=>{});
+      removeStudentChannel();
+     }
+    }
+   };
+   studentChannel=client.channel(studentTopic(hostId),{config:{broadcast:{self:false},private:false}});
+   studentChannel.on('broadcast',{event:'host-message'},({payload})=>{
+    const item=payload||{};
+    if(item.target!==clientId||!item.data)return;
+    if(typeof connection?.onData==='function')connection.onData(item.data);
    });
-   peer.on('error',e=>{
-    const type=e&&e.type?e.type:'unknown',detail=e&&e.message?e.message:'';
-    const messages={
-     'server-error':'Máy chủ PeerJS đang từ chối hoặc không phản hồi kết nối.',
-     'network':'Mất kết nối mạng khi liên hệ máy chủ PeerJS.',
-     'socket-error':'Không mở được kênh liên lạc với máy chủ PeerJS.',
-     'socket-closed':'Kênh liên lạc với máy chủ PeerJS đã đóng.',
-     'peer-unavailable':'Không tìm thấy phòng. Giáo viên cần mở phòng và cung cấp mã phòng mới.'
-    };
-    failJoin((messages[type]||'Kết nối thất bại ('+type+').')+(detail?' Chi tiết: '+detail:''));
+   connection.on('data',receiveHostMessage);
+   studentChannel.subscribe(async status=>{
+    if(status==='SUBSCRIBED'&&joining){
+     connection.open=true;
+     $('joinError').textContent='Đã kết nối máy chủ. Đang gửi thông tin tham gia…';
+     const result=await connection.send({type:'join',name,team});
+     if(result!=='ok'&&joining)failJoin('Không gửi được yêu cầu vào phòng ('+result+').');
+    }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')&&joining){
+     failJoin('Kết nối tới phòng bị gián đoạn ('+status+'). Hãy kiểm tra mã phòng và thử lại.');
+    }
    });
-   peer.on('disconnected',()=>{if(joining)failJoin('Kết nối tới máy chủ PeerJS bị ngắt. Hãy thử lại.')});
-  }catch(e){failJoin('Không thể khởi tạo kết nối: '+(e&&e.message?e.message:'lỗi không xác định'))}
+   window.addEventListener('beforeunload',()=>{if(connection)connection.close()},{once:true});
+  }catch(e){failJoin('Không thể kết nối tới phòng: '+(e?.message||'lỗi không xác định'))}
  });
  $('voteCaptain').addEventListener('click',()=>{const c=document.querySelector('input[name="captainCandidate"]:checked');if(!c){$('captainVoteMessage').textContent='Hãy chọn một thành viên.';return}send(connection,{type:'captain-vote',candidate:c.value})});
  $('captainAnswerSelect').addEventListener('change',()=>{const item=teamTexts[Number($('studentTeam').value)]?.[Number($('captainAnswerSelect').value)];if(item)$('captainFinalAnswer').value=item.text});
@@ -378,12 +424,12 @@ function renderController(s,pending){
   info.append(name,detail);row.append(info);$('controllerPending').append(row);
  }));
 }
-function renderStudentState(data){if(!data||data.type!=='state')return;renderReflexStudent(data);const teamIndex=Number.isInteger(selfTeamIndex)?selfTeamIndex:Number($('studentTeam').value);const team=data.teams?.[teamIndex];const ownMember=(team?.members||[]).find(m=>m.id===peer?.id);if(ownMember)selfName=ownMember.name;$('studentIdentityName').textContent=selfName||$('studentName').value||'Học sinh';const isCaptain=data.captains?.[teamIndex]===peer?.id;$('studentPlay').classList.toggle('is-captain',isCaptain);$('studentPlay').classList.toggle('is-member',!isCaptain);$('studentRoleBadge').textContent=isCaptain?'ĐỘI TRƯỞNG':'THÀNH VIÊN';$('studentIdentityBar').classList.toggle('captain-identity-bar',isCaptain);if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.';
+function renderStudentState(data){if(!data||data.type!=='state')return;renderReflexStudent(data);const teamIndex=Number.isInteger(selfTeamIndex)?selfTeamIndex:Number($('studentTeam').value);const team=data.teams?.[teamIndex];const ownMember=(team?.members||[]).find(m=>m.id===connection?.peer);if(ownMember)selfName=ownMember.name;$('studentIdentityName').textContent=selfName||$('studentName').value||'Học sinh';const isCaptain=data.captains?.[teamIndex]===connection?.peer;$('studentPlay').classList.toggle('is-captain',isCaptain);$('studentPlay').classList.toggle('is-member',!isCaptain);$('studentRoleBadge').textContent=isCaptain?'ĐỘI TRƯỞNG':'THÀNH VIÊN';$('studentIdentityBar').classList.toggle('captain-identity-bar',isCaptain);if(team){$('studentTeamName').textContent=team.name;$('studentScore').textContent=team.score}$('studentRound').textContent=data.currentRound||'Chưa chọn hoạt động';$('studentTimer').textContent=data.seconds>0?'Thời gian còn lại: '+String(Math.floor(data.seconds/60)).padStart(2,'0')+':'+String(data.seconds%60).padStart(2,'0'):'Theo hướng dẫn của giáo viên.';
  const publicRoster=$('publicCaptainRoster');if(publicRoster){publicRoster.replaceChildren();(data.teams||[]).forEach((t,i)=>{const line=document.createElement('p');const leader=t.members.find(m=>m.id===data.captains?.[i]);line.textContent=t.name+': '+(leader?leader.name:'Chưa có đội trưởng');publicRoster.append(line)})}const q=data.question||{};$('studentQuestion').textContent=q.text||'Đang chờ giáo viên gửi câu hỏi…'; const election=data.captainElection||{};$('captainElection').classList.toggle('hidden',!election.open);
  const candidates=$('captainCandidates');candidates.replaceChildren();
  if(election.open)(data.teams?.[teamIndex]?.members||[]).forEach(m=>{const label=document.createElement('label');label.className='student-choice';const r=document.createElement('input');r.type='radio';r.name='captainCandidate';r.value=m.id;const span=document.createElement('span');span.textContent=m.name;label.append(r,span);candidates.append(label)});
  $('captainCountdown').textContent=election.open?'Còn '+Math.max(0,Math.ceil((election.endsAt-Date.now())/1000))+' giây':'';
- const voted=!!data.captainVotes?.[teamIndex]?.[peer?.id];$('voteCaptain').disabled=!election.open||voted;
+ const voted=!!data.captainVotes?.[teamIndex]?.[connection?.peer];$('voteCaptain').disabled=!election.open||voted;
  const captain=data.captains?.[teamIndex];
  $('captainIdentity').textContent=isCaptain?'Bạn là ĐỘI TRƯỞNG.':(captain?'Đội trưởng: '+(team?.members||[]).find(m=>m.id===captain)?.name:'Đội chưa có đội trưởng.');
  $('captainSubmitPanel').classList.toggle('hidden',!isCaptain||!!data.teamFinals?.[teamIndex]);
@@ -402,5 +448,5 @@ function renderStudentState(data){if(!data||data.type!=='state')return;renderRef
 function updateTeams(){teams.forEach((t,i)=>t.name=$('teamName'+i).value.trim()||'Đội '+(i+1));broadcast()}
 function publishQuestion(){const q=$('discussionQuestion').value.trim();if(!q){$('questionStatus').textContent='Hãy nhập nội dung câu hỏi.';return}questionType=$('discussionType').value;questionOptions=$('discussionOptions').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,8);if(questionType!=='text'&&questionOptions.length<2){$('questionStatus').textContent='Hãy nhập ít nhất hai phương án, mỗi phương án một dòng.';return}currentQuestion=q;teamVotes=[{}, {}, {}, {}];teamTexts=[[],[],[],[]];teamFinals=[null,null,null,null];raceOrder=[];raceAwarded.clear();$('questionStatus').textContent='Đã gửi câu hỏi đến các phòng đội.';broadcast()}
 function setClock(){$('roomClock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
-if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{if(peer)peer.destroy();removeControllerChannel()})}
+if(controllerHost)startController();else if(hostId)startStudent();else{show('teacherView');renderTeacher();renderPending();$('createRoom').addEventListener('click',startTeacher);$('closeRoom').addEventListener('click',closeTeacher);$('currentRound').addEventListener('change',()=>{currentRound=$('currentRound').value;broadcast()});$('startCaptainVote').addEventListener('click',openCaptainElection);for(let i=0;i<4;i++)$('teamName'+i).addEventListener('change',updateTeams);$('timerStart').addEventListener('click',()=>{if(timer)return;timer=setInterval(()=>{if(seconds>0)seconds--;else{clearInterval(timer);timer=null}setClock();broadcast()},1000)});$('timerReset').addEventListener('click',()=>{if(timer)clearInterval(timer);timer=null;seconds=120;setClock();broadcast()});setClock();$('reflexStart').addEventListener('click',()=>startReflexQuestion(0));$('reflexNext').addEventListener('click',()=>startReflexQuestion(reflex.index+1));window.addEventListener('beforeunload',()=>{removeStudentChannel();removeControllerChannel()})}
 })();
