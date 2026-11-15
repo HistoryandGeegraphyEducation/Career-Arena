@@ -257,3 +257,65 @@
 .breakthrough-assessment-actions{display:grid;grid-template-columns:110px minmax(150px,1fr) auto;gap:8px;margin-top:14px}
 .breakthrough-assessment-actions input{min-width:0;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#0b1732;color:#fff}
 @media(max-width:640px){.breakthrough-assessment-actions{grid-template-columns:1fr}.breakthrough-assessment-actions button{width:100%}}
+
+
+/* Mobile-first layouts for captain and member views */
+#studentView{width:100%;max-width:760px;min-width:0;margin-inline:auto}
+#studentView .section-head{align-items:center;gap:8px;flex-wrap:wrap}
+#studentPlay{display:grid;gap:12px;min-width:0}
+#studentPlay>*{min-width:0}
+#studentPlay .student-summary{align-items:center;gap:10px}
+#studentPlay .student-summary h2{overflow-wrap:anywhere}
+#studentPlay .student-discussion,
+#studentPlay .reflex-student-panel,
+#studentPlay .link-student-stage,
+#studentPlay .breakthrough-student-stage{width:100%;min-width:0;box-sizing:border-box}
+.reflex-image-stage{position:relative;inset:auto;z-index:1;display:grid;gap:8px;width:100%;min-height:0;padding:10px;box-sizing:border-box;border:1px solid rgba(93,202,255,.45);border-radius:14px;background:#020817}
+.reflex-image-stage.hidden{display:none}
+.reflex-image-stage img{display:block;width:100%;height:auto;max-height:34vh;min-height:150px;object-fit:contain}
+.reflex-image-stage p{margin:0;text-align:center;font-size:.84rem}
+.reflex-countdown{min-height:1.1em;line-height:1.1}
+.reflex-options{grid-template-columns:1fr;gap:9px}
+.reflex-option{width:100%;min-height:58px;padding:14px 15px;font-size:1rem;line-height:1.35;text-align:left;overflow-wrap:anywhere}
+.reflex-option.selected{border:2px solid #ffd76a;background:linear-gradient(120deg,#164b79,#15365e);box-shadow:0 0 0 2px rgba(255,215,106,.14)}
+#reflexMemberSubmit,#reflexSubmitNow{width:100%;min-height:54px;font-size:.94rem;font-weight:900;letter-spacing:.02em}
+.reflex-phase-status{margin:0;padding:10px 12px;border-radius:10px;background:#0b2b55;color:#cceaff;line-height:1.45}
+#reflexMemberFeedback{margin:0;min-height:2.7em;color:#d7eaff;line-height:1.5;overflow-wrap:anywhere}
+.reflex-leader-controls,.reflex-member-quiz{gap:11px}
+.reflex-captain-actions{display:grid;grid-template-columns:1fr;gap:9px}
+#studentPlay.is-captain .student-summary{border-color:#d6ad4d}
+#studentPlay.is-captain .reflex-student-panel{border-color:#d6ad4d}
+#studentPlay.is-captain .reflex-leader-controls{padding:12px;border:1px solid rgba(230,190,91,.5);border-radius:13px;background:rgba(75,54,12,.22)}
+#studentPlay .student-identity-bar{position:sticky;top:6px;z-index:30;box-shadow:0 5px 18px rgba(0,0,0,.2)}
+#studentPlay .career-skill-shop{max-height:65dvh;overflow:auto}
+#studentPlay .student-discussion{padding:13px}
+#studentPlay .student-choice{min-height:50px;padding:12px;line-height:1.4}
+#studentPlay .field input,#studentPlay .field textarea,#studentPlay select{width:100%;max-width:100%;box-sizing:border-box}
+#studentPlay button{touch-action:manipulation}
+@media(max-width:600px){
+ #studentView{padding:12px}
+ #studentView>.section-head:first-child{position:sticky;top:0;z-index:35;padding:8px 0;background:rgba(5,20,53,.96);backdrop-filter:blur(10px)}
+ #studentView>.section-head:first-child h2{font-size:1.05rem}
+ #studentPlay{gap:10px}
+ #studentPlay .student-summary{padding:12px}
+ #studentPlay .student-summary .score{font-size:1.7rem}
+ .reflex-student-panel{gap:11px;margin:8px 0;padding:12px;border-radius:15px}
+ .reflex-topline{font-size:.78rem}
+ .reflex-image-stage img{max-height:30vh;min-height:135px}
+ .reflex-member-quiz h3{margin:0;font-size:1.05rem}
+ .reflex-countdown{font-size:clamp(3.5rem,22vw,6rem)}
+ #studentPlay .captain-submit-panel .row{display:grid;grid-template-columns:1fr}
+ #studentPlay .captain-submit-panel .row button{width:100%}
+ #studentPlay .link-member-boxes{grid-template-columns:1fr}
+ #studentPlay .link-card-pool{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #studentPlay .breakthrough-card-pool{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #studentPlay .student-role-badge{white-space:nowrap}
+}
+@media(max-width:380px){
+ #studentView{padding:9px}
+ #studentPlay .student-identity-bar{gap:8px;padding:9px}
+ #studentPlay .student-identity-avatar{flex-basis:36px;height:36px}
+ #studentPlay .student-role-badge{font-size:.58rem;padding:6px}
+ .reflex-option{font-size:.94rem;padding:12px}
+ #studentPlay .link-card-pool,#studentPlay .breakthrough-card-pool{grid-template-columns:1fr}
+}

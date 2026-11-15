@@ -76,6 +76,26 @@ function openHostControllerChannel(code,onReady,onError){
 }
 const state=()=>({type:'state',roundStarted,breakthroughAssessments,careerPoints,captainRevealUntil,reflex,reflexVotes,reflexTeamPhases,reflexElapsed,teams,submissions,currentRound,seconds,approvalMode,question:{text:currentQuestion,type:questionType,options:questionOptions},teamVotes,teamTexts,teamFinals,captainElection,captainVotes,captains,raceOrder,linkRound,linkSelections,linkNotes,linkSummaries,breakthroughRound,liveBoardVisible,roundPoints,bootReview,reflexRoundResults});
 const send=(c,d)=>{try{if(c&&c.open)c.send(d)}catch(e){}};
+let reflexNoticeAudio=null;
+function unlockReflexNoticeAudio(){
+ const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+ if(!AudioContextClass)return;
+ try{if(!reflexNoticeAudio)reflexNoticeAudio=new AudioContextClass();if(reflexNoticeAudio.state==='suspended')reflexNoticeAudio.resume()}catch(e){}
+}
+function playReflexCaptainNotice(){
+ const ctx=reflexNoticeAudio;
+ if(!ctx)return;
+ try{
+  if(ctx.state==='suspended')ctx.resume();
+  const now=ctx.currentTime;
+  [880,1174.66].forEach((frequency,index)=>{
+   const oscillator=ctx.createOscillator(),gain=ctx.createGain(),start=now+index*.14;
+   oscillator.type='sine';oscillator.frequency.value=frequency;
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.16,start+.02);gain.gain.exponentialRampToValueAtTime(.0001,start+.12);
+   oscillator.connect(gain);gain.connect(ctx.destination);oscillator.start(start);oscillator.stop(start+.13);
+  });
+ }catch(e){}
+}
 function addRoundPoints(round,team,points){if(!roundPoints[round])roundPoints[round]=[0,0,0,0];roundPoints[round][team]=(roundPoints[round][team]||0)+points}
 function roundRows(data,round){const values=data.roundPoints?.[round]||[0,0,0,0];return (data.teams||[]).map((team,i)=>({team:team.name,points:values[i]||0,index:i})).sort((a,b)=>b.points-a.points||a.index-b.index)}
 const broadcast=()=>{const s=state();connections.forEach(c=>send(c,s));publishControllerMessage({type:'control-state',state:s,pending:[...pendingRequests].map(([id,r])=>({id,name:r.name,team:r.team}))});renderTeacher()};
@@ -101,6 +121,11 @@ function approveJoin(id){
  const request=pendingRequests.get(id);if(!request)return;
  const {conn,team,name}=request;
  if(!conn.open){pendingRequests.delete(id);renderPending();return}
+ if(!teams[team]||teams[team].members.filter(m=>m.id!==id).length>=13){
+  pendingRequests.delete(id);
+  send(conn,{type:'join-error',message:'Đội đã đủ 13 thành viên. Hãy chọn đội khác còn chỗ.'});
+  renderPending();broadcast();return;
+ }
  teams.forEach(t=>t.members=t.members.filter(m=>m.id!==id));
  teams[team].members.push({id,name});conn.__team=team;conn.__name=name;
  pendingRequests.delete(id);
@@ -144,9 +169,153 @@ const reflexJobs=[["Bác sĩ","https://images.unsplash.com/photo-1612349317150-e
  function clearReflexTimers(){if(reflexClockTimer){clearInterval(reflexClockTimer);reflexClockTimer=null}if(reflexAutoNextTimer){clearTimeout(reflexAutoNextTimer);reflexAutoNextTimer=null}reflexCaptainTimers.forEach((t,i)=>{if(t)clearTimeout(t);reflexCaptainTimers[i]=null})}
  function startReflexCaptainWindow(team){if(!reflex.active||reflex.completed[team]||reflexTeamPhases[team].phase!=='select')return;reflexTeamPhases[team]={...reflexTeamPhases[team],phase:'captain',captainEndsAt:Date.now()+5000};if(reflexCaptainTimers[team])clearTimeout(reflexCaptainTimers[team]);reflexCaptainTimers[team]=setTimeout(()=>finalizeReflexTeam(team),5000);teams[team].members.forEach(m=>{const c=connections.get(m.id);if(c)send(c,{type:'reflex-feedback',message:'Đã hết thời gian chọn. Đội trưởng có tối đa 5 giây để nộp đáp án.'})});broadcast()}
  function finalizeReflexTeam(team){if(!reflex.active||reflex.completed[team])return;const votes=Object.entries(reflexVotes[team]||{});if(!votes.length){reflexTeamPhases[team]={...reflexTeamPhases[team],phase:'closed',captainEndsAt:0};broadcast();return}const counts={};votes.forEach(([member,v])=>{const x=counts[v.option]||(counts[v.option]={count:0,last:0});x.count++;x.last=Math.max(x.last,v.time||0)});const chosen=Object.entries(counts).sort((a,b)=>b[1].count-a[1].count||b[1].last-a[1].last)[0];const option=Number(chosen[0]),job=reflexJobs[reflex.index];if(reflexCaptainTimers[team]){clearTimeout(reflexCaptainTimers[team]);reflexCaptainTimers[team]=null}if(option!==job[3]){reflexVotes[team]={};const deadline=reflexTeamPhases[team].selectionEndsAt||reflex.selectionEndsAt;reflexTeamPhases[team]={phase:Date.now()<deadline?'select':'closed',selectionEndsAt:deadline,captainEndsAt:0};teams[team].members.forEach(m=>{const c=connections.get(m.id);if(c)send(c,{type:'reflex-feedback',message:'Đáp án đa số chưa chính xác. Đội có thể chọn lại nếu còn thời gian.'})});broadcast();return}const elapsed=Date.now()-reflex.startedAt,rank=Object.keys(reflex.completed).length,points=[10,7,5,3][rank]||0;reflex.completed[team]={time:elapsed,points,option,votes:votes.length};reflexElapsed[team]+=elapsed;reflexPoints[team]+=points;teams[team].score+=points;addRoundPoints('Phản xạ',team,points);careerPoints[team]+=[10,7,5,3][rank]||0;reflexRoundResults.push({team,question:reflex.index,time:elapsed,points,careerPoints:[10,7,5,3][rank]||0});reflexTeamPhases[team]={...reflexTeamPhases[team],phase:'done',captainEndsAt:0};teams[team].members.forEach(m=>{const c=connections.get(m.id);if(c)send(c,{type:'reflex-feedback',message:'Đáp án đa số chính xác. Đội nhận '+points+' điểm.'})});broadcast()}
- function startReflexQuestion(index){clearReflexTimers();if(index>=reflexJobs.length){reflex.active=false;reflex.index=-1;$('reflexStatus').textContent='Đã hoàn thành 12 hình ảnh.';$('reflexNext').disabled=true;broadcast();return}const now=Date.now();roundStarted=true;reflex={active:true,index,startedAt:now,selectionEndsAt:now+10000,completed:{}};reflexVotes=[{},{},{},{}];reflexTeamPhases=Array.from({length:4},()=>({phase:'select',selectionEndsAt:now+10000,captainEndsAt:0}));$('reflexStatus').textContent='Câu '+(index+1)+' / 12 · '+reflexJobs[index][0]+' · 15 giây chọn đáp án';$('reflexNext').disabled=false;reflexClockTimer=setInterval(()=>{if(!reflex.active){clearReflexTimers();return}for(let i=0;i<4;i++)if(reflexTeamPhases[i].phase==='select'&&Date.now()>=(reflexTeamPhases[i].selectionEndsAt||reflex.selectionEndsAt))startReflexCaptainWindow(i);broadcast()},1000);reflexAutoNextTimer=setTimeout(()=>{if(!reflex.active||reflex.index!==index)return;for(let team=0;team<4;team++){if(reflexTeamPhases[team].phase==='captain')finalizeReflexTeam(team);else if(reflexTeamPhases[team].phase==='select')startReflexCaptainWindow(team)}startReflexQuestion(index+1)},15000);broadcast()}
+ function startReflexQuestion(index){
+ clearReflexTimers();
+ if(index>=reflexJobs.length){
+  reflex.active=false;reflex.index=-1;
+  $('reflexStatus').textContent='Đã hoàn thành 12 hình ảnh.';
+  $('reflexNext').disabled=true;broadcast();return;
+ }
+ const now=Date.now(),selectionStartsAt=now+3000,selectionEndsAt=selectionStartsAt+15000;
+ roundStarted=true;
+ reflex={active:true,index,startedAt:now,selectionStartsAt,selectionEndsAt,completed:{}};
+ reflexVotes=[{},{},{},{}];
+ reflexTeamPhases=Array.from({length:4},()=>({phase:'countdown',selectionStartsAt,selectionEndsAt,captainEndsAt:0}));
+ $('reflexStatus').textContent='Câu '+(index+1)+' / 12 · Đếm ngược 3 giây · 15 giây gửi đáp án · 5 giây đội trưởng chốt';
+ $('reflexNext').disabled=false;
+ reflexClockTimer=setInterval(()=>{
+  if(!reflex.active){clearReflexTimers();return}
+  for(let i=0;i<4;i++){
+   const phase=reflexTeamPhases[i];
+   if(phase.phase==='countdown'&&Date.now()>=phase.selectionStartsAt){
+    reflexTeamPhases[i]={...phase,phase:'select'};
+   }
+   if(reflexTeamPhases[i].phase==='select'&&Date.now()>=reflexTeamPhases[i].selectionEndsAt)startReflexCaptainWindow(i);
+  }
+  broadcast();
+ },250);
+ reflexAutoNextTimer=setTimeout(()=>{
+  if(!reflex.active||reflex.index!==index)return;
+  for(let team=0;team<4;team++){
+   if(reflexTeamPhases[team].phase==='captain')finalizeReflexTeam(team);
+   else if(reflexTeamPhases[team].phase==='select'||reflexTeamPhases[team].phase==='countdown')startReflexCaptainWindow(team);
+  }
+  startReflexQuestion(index+1);
+ },23000);
+ broadcast();
+}
 function renderReflexTeacher(){const live=$('reflexLiveBoard'),board=$('reflexAchievements');if(!live||!board)return;const rows=teams.map((t,i)=>({name:t.name,done:!!reflex.completed?.[i],points:reflexPoints[i],time:reflexElapsed[i]})).sort((a,b)=>(b.points-a.points)||(a.time-b.time));live.replaceChildren();rows.forEach(r=>{const row=document.createElement('div');row.className='reflex-live-row';const name=document.createElement('strong');name.textContent=r.name;const track=document.createElement('div');track.className='reflex-track';const fill=document.createElement('span');fill.style.width=Math.max(4,Math.min(100,r.points*2))+'%';track.append(fill);const label=document.createElement('small');label.textContent=r.done?'Đã trả lời':'Đang thực hiện';row.append(name,track,label);live.append(row)});board.replaceChildren();}
- function renderReflexStudent(data){const panel=$('reflexStudentPanel');if(!panel)return;const r=data.reflex||{},selected=data.currentRound==='Phản xạ';panel.classList.toggle('hidden',!selected);const legacy=document.querySelector('.student-discussion');if(legacy)legacy.classList.toggle('hidden',data.currentRound!=='Khởi động');if(!selected||!r.active){$('reflexImageStage').classList.add('hidden');return}const job=reflexJobs[r.index];if(!job)return;const teamIndex=Number.isInteger(selfTeamIndex)?selfTeamIndex:Number($('studentTeam').value),isCaptain=data.captains?.[teamIndex]===connection?.peer,phase=data.reflexTeamPhases?.[teamIndex]||{phase:'select'},votes=data.reflexVotes?.[teamIndex]||{},myVote=votes[connection?.peer],done=!!r.completed?.[teamIndex],deadline=phase.selectionEndsAt||r.selectionEndsAt;$('reflexLeaderControls').classList.toggle('hidden',!isCaptain);$('reflexMemberQuiz').classList.toggle('hidden',isCaptain);$('reflexQuestionNumber').textContent='CÂU '+(r.index+1)+' / 12';$('reflexImage').src=job[1];const reveal=()=>{const stage=$('reflexImageStage');stage.classList.remove('hidden');clearTimeout(window.__reflexHideTimer);window.__reflexHideTimer=setTimeout(()=>stage.classList.add('hidden'),isCaptain?3000:5000)};const revealKey=String(r.startedAt)+':'+String(r.index);if(window.__reflexShownKey!==revealKey){window.__reflexShownKey=revealKey;$('reflexImageStage').classList.add('hidden');const count=$('reflexCountdown');count.classList.remove('hidden');count.textContent='3';let n=3;const tick=setInterval(()=>{n--;if(n<=0){clearInterval(tick);count.classList.add('hidden');reveal()}else count.textContent=String(n)},1000)}$('reflexLeaderReveal').onclick=reveal;$('reflexMemberReveal').onclick=reveal;const options=$('reflexOptions');options.replaceChildren();job[2].forEach((label,i)=>{const b=document.createElement('button');b.type='button';b.className='reflex-option'+(myVote?.option===i?' selected':'');b.textContent=String.fromCharCode(65+i)+'. '+label;b.disabled=done||phase.phase!=='select'||Date.now()>deadline;b.onclick=()=>send(connection,{type:'reflex-choice',question:r.index,option:i});options.append(b)});const remain=Math.max(0,Math.ceil(((phase.phase==='captain'?phase.captainEndsAt:deadline)-Date.now())/1000)),voteCount=Object.keys(votes).length,tally=job[2].map((label,i)=>({label,count:Object.values(votes).filter(v=>v.option===i).length})),lead=tally.slice().sort((a,b)=>b.count-a.count)[0];$('reflexMemberFeedback').textContent=done?'Đội đã chốt đáp án và nhận '+r.completed[teamIndex].points+' điểm.':isCaptain?'Thành viên đã chọn: '+voteCount+'. '+(lead&&lead.count?'Đáp án đang dẫn đầu: '+lead.label+' ('+lead.count+' phiếu).':'Đang chờ thành viên chọn đáp án.'):(myVote?'Đã chọn: '+job[2][myVote.option]+'. Bạn có thể thay đổi đến khi hết giờ.':'Chọn một đáp án. Bạn có thể thay đổi lựa chọn trong 15 giây.');const phaseText=phase.phase==='select'?'Thời gian chọn: '+Math.max(0,Math.ceil((deadline-Date.now())/1000))+' giây':phase.phase==='captain'?'Đội trưởng chốt trong: '+remain+' giây':phase.phase==='done'?'Đã chốt đáp án':'Đã hết thời gian';$('reflexPhaseStatus').textContent=phaseText;$('reflexPhaseStatusMember').textContent=phaseText;$('reflexHurry').disabled=done||phase.phase!=='select';$('reflexSubmitNow').disabled=done||voteCount===0;$('reflexHurry').onclick=()=>send(connection,{type:'reflex-captain-action',action:'hurry'});$('reflexSubmitNow').onclick=()=>send(connection,{type:'reflex-captain-action',action:'submit'});$('reflexHurry').classList.toggle('hidden',!isCaptain);$('reflexSubmitNow').classList.toggle('hidden',!isCaptain)}
+ function renderReflexStudent(data){
+  const panel=$('reflexStudentPanel');if(!panel)return;
+  const r=data.reflex||{},selected=data.currentRound==='Phản xạ';
+  panel.classList.toggle('hidden',!selected);
+  const legacy=document.querySelector('.student-discussion');
+  if(legacy)legacy.classList.toggle('hidden',data.currentRound!=='Khởi động');
+  if(!selected||!r.active){$('reflexImageStage').classList.add('hidden');$('reflexCountdown').classList.add('hidden');return}
+  const job=reflexJobs[r.index];if(!job)return;
+  const teamIndex=Number.isInteger(selfTeamIndex)?selfTeamIndex:Number($('studentTeam').value);
+  const isCaptain=data.captains?.[teamIndex]===connection?.peer;
+  const phase=data.reflexTeamPhases?.[teamIndex]||{phase:'countdown'};
+  const votes=data.reflexVotes?.[teamIndex]||{};
+  const myVote=votes[connection?.peer];
+  const done=!!r.completed?.[teamIndex];
+  const voteCount=Object.keys(votes).length;
+  const revealAt=Number(r.selectionStartsAt)||Number(r.startedAt)+3000;
+  const revealKey=String(r.startedAt)+':'+String(r.index);
+  $('reflexQuestionNumber').textContent='CÂU '+(r.index+1)+' / 12';
+  $('reflexImage').src=job[1];
+  $('reflexLeaderControls').classList.toggle('hidden',!isCaptain);
+  $('reflexMemberQuiz').classList.toggle('hidden',isCaptain);
+  if(window.__reflexShownKey!==revealKey){
+   window.__reflexShownKey=revealKey;
+   clearInterval(window.__reflexCountdownInterval);
+   clearTimeout(window.__reflexRevealTimer);
+   $('reflexImageStage').classList.add('hidden');
+   const count=$('reflexCountdown');
+   count.classList.remove('hidden');
+   const updateCountdown=()=>{
+    const left=Math.max(0,Math.ceil((revealAt-Date.now())/1000));
+    count.textContent=String(left);
+    if(left<=0){
+     clearInterval(window.__reflexCountdownInterval);
+     count.classList.add('hidden');
+     $('reflexImageStage').classList.remove('hidden');
+    }
+   };
+   updateCountdown();
+   window.__reflexCountdownInterval=setInterval(updateCountdown,150);
+   window.__reflexRevealTimer=setTimeout(updateCountdown,Math.max(0,revealAt-Date.now()));
+  }else if(Date.now()>=revealAt){
+   $('reflexCountdown').classList.add('hidden');
+   $('reflexImageStage').classList.remove('hidden');
+  }
+  const options=$('reflexOptions');
+  const draftKey=revealKey+':'+String(connection?.peer||'');
+  if(window.__reflexDraftKey!==draftKey){
+   window.__reflexDraftKey=draftKey;
+   window.__reflexDraftOption=myVote?myVote.option:null;
+  }
+  if(myVote&&window.__reflexDraftOption===null)window.__reflexDraftOption=myVote.option;
+  const canSelect=!isCaptain&&!done&&phase.phase==='select'&&Date.now()<Number(phase.selectionEndsAt||r.selectionEndsAt);
+  options.replaceChildren();
+  job[2].forEach((label,i)=>{
+   const b=document.createElement('button');
+   b.type='button';
+   b.className='reflex-option'+(Number(window.__reflexDraftOption)===i?' selected':'');
+   b.textContent=String.fromCharCode(65+i)+'. '+label;
+   b.disabled=!canSelect;
+   b.setAttribute('aria-pressed',String(Number(window.__reflexDraftOption)===i));
+   b.onclick=()=>{
+    window.__reflexDraftOption=i;
+    options.querySelectorAll('.reflex-option').forEach((node,index)=>{
+     node.classList.toggle('selected',index===i);
+     node.setAttribute('aria-pressed',String(index===i));
+    });
+    $('reflexMemberSubmit').disabled=false;
+    $('reflexMemberFeedback').textContent='Đã chọn phương án '+String.fromCharCode(65+i)+'. Nhấn GỬI ĐÁP ÁN để chuyển lựa chọn cho đội trưởng.';
+   };
+   options.append(b);
+  });
+  const memberSubmit=$('reflexMemberSubmit');
+  if(memberSubmit){
+   memberSubmit.classList.toggle('hidden',isCaptain);
+   memberSubmit.disabled=!canSelect||window.__reflexDraftOption===null||window.__reflexDraftOption===undefined;
+   memberSubmit.textContent=myVote&&myVote.option===window.__reflexDraftOption?'GỬI LẠI LỰA CHỌN':'GỬI ĐÁP ÁN CHO ĐỘI TRƯỞNG';
+   memberSubmit.onclick=()=>{
+    if(!canSelect||!Number.isInteger(Number(window.__reflexDraftOption)))return;
+    send(connection,{type:'reflex-choice',question:r.index,option:Number(window.__reflexDraftOption)});
+    memberSubmit.disabled=true;
+    $('reflexMemberFeedback').textContent='Đang gửi đáp án cho đội trưởng…';
+   };
+  }
+  const remain=Math.max(0,Math.ceil(((phase.phase==='captain'?phase.captainEndsAt:phase.selectionEndsAt)-Date.now())/1000));
+  const tally=job[2].map((label,i)=>({label,count:Object.values(votes).filter(v=>v.option===i).length}));
+  const lead=tally.slice().sort((a,b)=>b.count-a.count)[0];
+  const tallyText=tally.filter(x=>x.count).map((x)=>x.label+': '+x.count).join(' · ');
+  $('reflexMemberFeedback').textContent=done
+   ?'Đội đã chốt đáp án và nhận '+r.completed[teamIndex].points+' điểm.'
+   :isCaptain
+    ?'Đã nhận '+voteCount+' lượt gửi từ thành viên.'+(tallyText?' '+tallyText:' Đang chờ thành viên gửi đáp án.')
+    :phase.phase==='countdown'
+     ?'Ảnh sẽ xuất hiện sau '+Math.max(0,Math.ceil((revealAt-Date.now())/1000))+' giây.'
+     :myVote
+      ?'Đã gửi: '+job[2][myVote.option]+'. Bạn có thể gửi lại lựa chọn trong thời gian còn lại.'
+      :'Chọn một phương án, sau đó nhấn nút gửi đáp án.';
+  const phaseText=phase.phase==='countdown'
+   ?'Chuẩn bị quan sát · '+Math.max(0,Math.ceil((revealAt-Date.now())/1000))+' giây'
+   :phase.phase==='select'
+    ?'Thành viên gửi đáp án trong: '+remain+' giây'
+    :phase.phase==='captain'
+     ?'Đội trưởng chốt trong: '+remain+' giây'
+     :phase.phase==='done'?'Đã chốt đáp án':'Đã hết thời gian';
+  $('reflexPhaseStatus').textContent=phaseText;
+  $('reflexPhaseStatusMember').textContent=phaseText;
+  $('reflexHurry').classList.add('hidden');
+  $('reflexSubmitNow').textContent=phase.phase==='captain'?'CHỐT ĐÁP ÁN':'CHỜ HẾT 15 GIÂY';
+  $('reflexSubmitNow').disabled=done||phase.phase!=='captain'||voteCount===0;
+  $('reflexSubmitNow').onclick=()=>send(connection,{type:'reflex-captain-action',action:'submit'});
+  $('reflexSubmitNow').classList.toggle('hidden',!isCaptain);
+ }
 
 const linkCats=[['work','CÔNG VIỆC'],['tools','CÔNG CỤ – THIẾT BỊ'],['skills','NĂNG LỰC – PHẨM CHẤT'],['conditions','ĐIỀU KIỆN LÀM VIỆC'],['challenges','THÁCH THỨC NGHỀ NGHIỆP']];
 const linkDragAssignments={};let linkSelectedCard=null;
@@ -303,7 +472,17 @@ function onMessage(conn,data){
   pendingRequests.set(conn.peer,{conn,team:i,name,requestedAt:Date.now()});
   approveJoin(conn.peer);return;
  }
-  if(data.type==='reflex-choice'&&Number.isInteger(conn.__team)&&reflex.active&&data.question===reflex.index){const t=conn.__team,deadline=reflexTeamPhases[t].selectionEndsAt||reflex.selectionEndsAt;if(reflex.completed[t]||reflexTeamPhases[t].phase!=='select'||Date.now()>deadline){send(conn,{type:'reflex-feedback',message:'Đã hết thời gian thay đổi đáp án.'});return}if(!Number.isInteger(data.option)||!reflexJobs[reflex.index][2][data.option])return;reflexVotes[t][conn.peer]={option:data.option,time:Date.now(),name:conn.__name};send(conn,{type:'reflex-feedback',message:'Đã ghi nhận lựa chọn mới nhất của bạn.'});broadcast();return}
+  if(data.type==='reflex-choice'&&Number.isInteger(conn.__team)&&reflex.active&&data.question===reflex.index){
+  const t=conn.__team,phase=reflexTeamPhases[t],deadline=phase.selectionEndsAt||reflex.selectionEndsAt;
+  if(captains[t]===conn.peer){send(conn,{type:'reflex-feedback',message:'Đội trưởng theo dõi lựa chọn và chốt đáp án ở giai đoạn 5 giây cuối.'});return}
+  if(reflex.completed[t]||phase.phase!=='select'||Date.now()>deadline){send(conn,{type:'reflex-feedback',message:'Đã hết thời gian gửi hoặc thay đổi đáp án.'});return}
+  if(!Number.isInteger(data.option)||!reflexJobs[reflex.index][2][data.option])return;
+  reflexVotes[t][conn.peer]={option:data.option,time:Date.now(),name:conn.__name};
+  send(conn,{type:'reflex-feedback',message:'Đã gửi đáp án cho đội trưởng.'});
+  const captainId=captains[t],captainConnection=connections.get(captainId);
+  if(captainId&&captainConnection)send(captainConnection,{type:'reflex-member-submitted',memberName:conn.__name,option:data.option,question:reflex.index});
+  broadcast();return
+}
   if(data.type==='reflex-captain-action'&&Number.isInteger(conn.__team)&&reflex.active){const t=conn.__team;if(captains[t]!==conn.peer){send(conn,{type:'reflex-feedback',message:'Chỉ đội trưởng mới được điều khiển câu trả lời.'});return}if(data.action==='hurry'){if(reflexTeamPhases[t].phase!=='select')return;reflexTeamPhases[t].selectionEndsAt=Date.now()+5000;teams[t].members.forEach(m=>{const c=connections.get(m.id);if(c)send(c,{type:'reflex-feedback',message:'Đội trưởng đang hối thúc. Hãy chốt hoặc điều chỉnh đáp án trong 5 giây tới.'})});broadcast();return}if(data.action==='submit'){if(!Object.keys(reflexVotes[t]||{}).length){send(conn,{type:'reflex-feedback',message:'Chưa có thành viên nào chọn đáp án.'});return}finalizeReflexTeam(t);return}}
  if(data.type==='breakthrough-draw-request'&&Number.isInteger(conn.__team)){const t=conn.__team;if(captains[t]!==conn.peer){send(conn,{type:'breakthrough-feedback',message:'Chỉ Đội trưởng mới được bốc thăm.'});return}if(!drawBreakthroughScenario(t,false))send(conn,{type:'breakthrough-feedback',message:'Chưa đến lượt đội bạn hoặc không còn tình huống.'});return}if(data.type==='breakthrough-submit'&&Number.isInteger(conn.__team)){if(captains[conn.__team]===conn.peer){send(conn,{type:'breakthrough-feedback',message:'Đội trưởng có thể tổng hợp và gửi bài làm chung ở phần bên dưới.'});return}saveBreakthroughSubmission(conn,data.ids,data.note);return}if(data.type==='breakthrough-team-submit'&&Number.isInteger(conn.__team)){submitBreakthroughTeamAnswer(conn,data.answer);return}if(data.type==='link-draw-request'&&Number.isInteger(conn.__team)){requestLinkDraw(conn);return} if(data.type==='link-card-redraw'&&Number.isInteger(conn.__team)){if(captains[conn.__team]===conn.peer&&linkRound.currentCard?.team===conn.__team){linkRound.currentCard=null;linkRound.cardVotes[conn.__team]={};requestLinkDraw(conn)}return} if(data.type==='link-card-vote'&&Number.isInteger(conn.__team)){recordLinkCardVote(conn,data.choice);return} if(data.type==='link-card-lock'&&Number.isInteger(conn.__team)){lockLinkCard(conn);return} if(data.type==='link-member-submit'&&Number.isInteger(conn.__team)){saveLinkMemberSubmission(conn,data);return} if(data.type==='captain-vote'&&Number.isInteger(conn.__team)&&captainElection.open&&!captainElection.closed){
   const t=conn.__team;if(captainVotes[t][conn.peer]){send(conn,{type:'captain-vote-result',message:'Bạn đã bỏ phiếu và không thể vote lại.'});return}
@@ -368,7 +547,7 @@ function startStudent(){
   $('studentStatus').textContent='Chưa kết nối';$('studentStatus').style.background='';
  };
  const receiveHostMessage=data=>{
-  if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return} if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return} if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return}if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return}if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}if(data&&data.type==='breakthrough-feedback'){$('breakthroughSubmitStatus').textContent=data.message||'';return}if(data&&data.type==='breakthrough-team-result'){let node=$('breakthroughTeamSubmitStatus');if(!node){node=document.createElement('p');node.id='breakthroughTeamSubmitStatus';$('breakthroughCaptainSummary')?.append(node)}node.textContent=data.message||'';return}
+  if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return} if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return} if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return}if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return}if(data&&data.type==='reflex-member-submitted'){playReflexCaptainNotice();$('reflexMemberFeedback').textContent='Thành viên '+String(data.memberName||'')+' vừa gửi đáp án.';return}if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}if(data&&data.type==='breakthrough-feedback'){$('breakthroughSubmitStatus').textContent=data.message||'';return}if(data&&data.type==='breakthrough-team-result'){let node=$('breakthroughTeamSubmitStatus');if(!node){node=document.createElement('p');node.id='breakthroughTeamSubmitStatus';$('breakthroughCaptainSummary')?.append(node)}node.textContent=data.message||'';return}
   if(data&&data.type==='captain-vote-result'){$('captainVoteMessage').textContent=data.message;return}
   if(data&&data.type==='captain-submit-result'){$('captainSubmitStatus').textContent=data.message;return}
   if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
@@ -388,6 +567,7 @@ function startStudent(){
   renderStudentState(data);
  };
  $('joinRoom').addEventListener('click',()=>{
+  unlockReflexNoticeAudio();
   if(joining)return;
   const name=$('studentName').value.trim(),team=Number($('studentTeam').value);
   if(!name){$('joinError').textContent='Hãy nhập tên thành viên.';return}
