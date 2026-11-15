@@ -154,3 +154,11 @@ textarea{max-width:100%}
  .round-banner h1{font-size:1.5rem}
  .btn{font-size:.88rem}
 }
+
+
+/* Smooth ambient motion for the activity space */
+.site-bg{transition:background .65s ease}
+.btn{transition:transform .22s ease,filter .22s ease,box-shadow .22s ease}
+.btn:not(:disabled):active{transform:translateY(1px) scale(.985)}
+.card,.panel,.round-banner{backface-visibility:hidden}
+@media(prefers-reduced-motion:reduce){.site-bg,.btn{transition:none!important}}

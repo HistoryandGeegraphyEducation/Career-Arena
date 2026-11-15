@@ -416,3 +416,37 @@
  #studentPlay .student-identity-avatar{flex-basis:35px;height:35px}
  #studentPlay .student-role-badge{padding:6px;font-size:.56rem}
 }
+
+
+/* Round-specific atmosphere, motion and finish controls */
+body[data-round-theme="warmup"] .site-bg{background:radial-gradient(ellipse at 18% 12%,rgba(255,174,56,.28),transparent 42%),radial-gradient(ellipse at 82% 75%,rgba(34,143,226,.22),transparent 40%),#10132d url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="reflex"] .site-bg{background:radial-gradient(ellipse at 15% 15%,rgba(255,67,104,.28),transparent 42%),radial-gradient(ellipse at 82% 75%,rgba(255,145,54,.2),transparent 40%),#210d2b url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="link"] .site-bg{background:radial-gradient(ellipse at 15% 12%,rgba(20,213,190,.25),transparent 42%),radial-gradient(ellipse at 82% 78%,rgba(47,112,255,.26),transparent 40%),#071f35 url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="breakthrough"] .site-bg{background:radial-gradient(ellipse at 18% 10%,rgba(255,91,38,.3),transparent 42%),radial-gradient(ellipse at 85% 72%,rgba(174,55,255,.25),transparent 42%),#230d25 url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="practice"] .site-bg{background:radial-gradient(ellipse at 18% 12%,rgba(65,207,255,.25),transparent 42%),radial-gradient(ellipse at 82% 75%,rgba(67,221,157,.18),transparent 40%),#071d32 url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="application"] .site-bg{background:radial-gradient(ellipse at 18% 12%,rgba(184,140,255,.26),transparent 42%),radial-gradient(ellipse at 82% 75%,rgba(255,211,106,.18),transparent 40%),#171333 url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+body[data-round-theme="reflex"] .round-banner{background-image:linear-gradient(105deg,rgba(63,12,44,.95),rgba(134,28,66,.72)),var(--banner);border-color:rgba(255,116,145,.48)}
+body[data-round-theme="link"] .round-banner{background-image:linear-gradient(105deg,rgba(3,54,65,.95),rgba(8,103,124,.72)),var(--banner);border-color:rgba(87,239,218,.48)}
+body[data-round-theme="breakthrough"] .round-banner{background-image:linear-gradient(105deg,rgba(76,24,8,.96),rgba(117,39,82,.76)),var(--banner);border-color:rgba(255,158,83,.5)}
+body[data-round-theme="reflex"] .panel{border-color:rgba(255,116,145,.34);box-shadow:0 24px 60px rgba(35,5,26,.4),inset 0 1px rgba(255,255,255,.13)}
+body[data-round-theme="link"] .panel{border-color:rgba(87,239,218,.34);box-shadow:0 24px 60px rgba(0,29,39,.4),inset 0 1px rgba(255,255,255,.13)}
+body[data-round-theme="breakthrough"] .panel{border-color:rgba(255,158,83,.34);box-shadow:0 24px 60px rgba(45,10,22,.42),inset 0 1px rgba(255,255,255,.13)}
+.round-banner{transition:background .55s ease,border-color .55s ease,box-shadow .55s ease}
+.panel,.timer-box,.round-control-block,.score-card,.pending-card{transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.room-wrap .panel{animation:roomPanelEnter .65s cubic-bezier(.2,.75,.25,1) both}
+@keyframes roomPanelEnter{from{opacity:.45;transform:translateY(13px) scale(.992)}to{opacity:1;transform:translateY(0) scale(1)}}
+.round-banner:after{content:"";position:absolute;inset:-80% -35%;pointer-events:none;background:linear-gradient(110deg,transparent 42%,rgba(255,255,255,.1) 49%,transparent 56%);transform:translateX(-75%);animation:bannerSweep 8s ease-in-out infinite}
+@keyframes bannerSweep{0%,62%{transform:translateX(-75%)}100%{transform:translateX(75%)}}
+.timer-box{position:relative;overflow:hidden;border:1px solid rgba(110,220,255,.3);border-radius:18px;padding:16px;background:linear-gradient(145deg,rgba(9,48,96,.8),rgba(4,18,49,.88));box-shadow:0 14px 34px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.1)}
+.timer-box:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,#68e7ff,#ffe08b,transparent);opacity:.8}
+.timer{transition:color .25s ease,text-shadow .25s ease}
+.timer-box:has(#roomClock:not(:empty)) .timer{ text-shadow:0 0 22px rgba(255,205,96,.22)}
+.btn.danger{color:#fff;background:linear-gradient(120deg,#e64a65,#9d244d);border:1px solid rgba(255,164,181,.65);box-shadow:0 8px 24px rgba(220,48,91,.25),inset 0 1px rgba(255,255,255,.3)}
+.btn:disabled{opacity:.42;cursor:not-allowed;transform:none;filter:saturate(.5)}
+.round-intro-hint{margin:9px 0 0;color:#b9d9f4;font-size:.8rem}
+.round-activity-panel{animation:activityReveal .5s ease both}
+@keyframes activityReveal{from{opacity:0;filter:blur(3px);transform:translateY(8px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+.score-card:hover,.pending-card:hover,.round-control-block:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(0,0,0,.24)}
+.link-fireworks:not(.hidden){animation:roomPanelEnter .45s ease both}
+@media(max-width:680px){.timer-box .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.timer-box .row .btn{min-width:0;padding-inline:9px}.timer-box .row #finishRound,.timer-box .row #controllerFinishRound{grid-column:1/-1}.round-intro-hint{line-height:1.45}}
+@media(prefers-reduced-motion:reduce){.room-wrap .panel,.round-banner:after{animation:none!important}.panel,.timer-box,.round-control-block,.score-card,.pending-card,.round-banner,.timer{transition:none!important}}
