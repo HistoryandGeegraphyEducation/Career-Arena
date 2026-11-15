@@ -13,3 +13,5 @@
 .detail h3{color:#ffe08b;margin:0 0 8px;font-size:16px}
 .detail p{line-height:1.65;color:#d6eaff;margin:0}
 @media(max-width:760px){#profile .profile-layout{grid-template-columns:1fr}.profile-photo{position:relative;top:auto;max-width:100%}.profile-photo img{height:250px}#details{grid-template-columns:1fr}.detail:last-child{grid-column:auto}}
+
+.photo-source[hidden]{display:none}.profile-photo.image-error img{display:none}
