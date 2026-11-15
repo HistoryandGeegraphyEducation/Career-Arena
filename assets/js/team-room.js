@@ -193,7 +193,7 @@ const reflexJobs=[["Bác sĩ","https://images.unsplash.com/photo-1612349317150-e
    if(reflexTeamPhases[i].phase==='select'&&Date.now()>=reflexTeamPhases[i].selectionEndsAt)startReflexCaptainWindow(i);
   }
   broadcast();
- },250);
+ },1000);
  reflexAutoNextTimer=setTimeout(()=>{
   if(!reflex.active||reflex.index!==index)return;
   for(let team=0;team<4;team++){
@@ -261,10 +261,10 @@ function renderReflexTeacher(){const live=$('reflexLiveBoard'),board=$('reflexAc
   job[2].forEach((label,i)=>{
    const b=document.createElement('button');
    b.type='button';
-   b.className='reflex-option'+(Number(window.__reflexDraftOption)===i?' selected':'');
+   b.className='reflex-option'+(window.__reflexDraftOption!==null&&Number(window.__reflexDraftOption)===i?' selected':'');
    b.textContent=String.fromCharCode(65+i)+'. '+label;
    b.disabled=!canSelect;
-   b.setAttribute('aria-pressed',String(Number(window.__reflexDraftOption)===i));
+   b.setAttribute('aria-pressed',String(window.__reflexDraftOption!==null&&Number(window.__reflexDraftOption)===i));
    b.onclick=()=>{
     window.__reflexDraftOption=i;
     options.querySelectorAll('.reflex-option').forEach((node,index)=>{
@@ -292,7 +292,7 @@ function renderReflexTeacher(){const live=$('reflexLiveBoard'),board=$('reflexAc
   const tally=job[2].map((label,i)=>({label,count:Object.values(votes).filter(v=>v.option===i).length}));
   const lead=tally.slice().sort((a,b)=>b.count-a.count)[0];
   const tallyText=tally.filter(x=>x.count).map((x)=>x.label+': '+x.count).join(' · ');
-  $('reflexMemberFeedback').textContent=done
+  const feedbackText=done
    ?'Đội đã chốt đáp án và nhận '+r.completed[teamIndex].points+' điểm.'
    :isCaptain
     ?'Đã nhận '+voteCount+' lượt gửi từ thành viên.'+(tallyText?' '+tallyText:' Đang chờ thành viên gửi đáp án.')
@@ -301,6 +301,8 @@ function renderReflexTeacher(){const live=$('reflexLiveBoard'),board=$('reflexAc
      :myVote
       ?'Đã gửi: '+job[2][myVote.option]+'. Bạn có thể gửi lại lựa chọn trong thời gian còn lại.'
       :'Chọn một phương án, sau đó nhấn nút gửi đáp án.';
+  $('reflexMemberFeedback').textContent=feedbackText;
+  $('reflexCaptainFeedback').textContent=feedbackText;
   const phaseText=phase.phase==='countdown'
    ?'Chuẩn bị quan sát · '+Math.max(0,Math.ceil((revealAt-Date.now())/1000))+' giây'
    :phase.phase==='select'
@@ -547,7 +549,7 @@ function startStudent(){
   $('studentStatus').textContent='Chưa kết nối';$('studentStatus').style.background='';
  };
  const receiveHostMessage=data=>{
-  if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return} if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return} if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return}if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return}if(data&&data.type==='reflex-member-submitted'){playReflexCaptainNotice();$('reflexMemberFeedback').textContent='Thành viên '+String(data.memberName||'')+' vừa gửi đáp án.';return}if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}if(data&&data.type==='breakthrough-feedback'){$('breakthroughSubmitStatus').textContent=data.message||'';return}if(data&&data.type==='breakthrough-team-result'){let node=$('breakthroughTeamSubmitStatus');if(!node){node=document.createElement('p');node.id='breakthroughTeamSubmitStatus';$('breakthroughCaptainSummary')?.append(node)}node.textContent=data.message||'';return}
+  if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return} if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return} if(data&&data.type==='link-member-result'){$('linkMemberSubmitStatus').textContent=data.message||'Đã gửi.';return}if(data&&data.type==='link-card-feedback'){$('linkCardVoteStatus').textContent=data.message||'';return}if(data&&data.type==='reflex-member-submitted'){playReflexCaptainNotice();$('reflexCaptainFeedback').textContent='Thành viên '+String(data.memberName||'')+' vừa gửi đáp án.';return}if(data&&data.type==='reflex-feedback'){$('reflexMemberFeedback').textContent=data.message;return}if(data&&data.type==='breakthrough-feedback'){$('breakthroughSubmitStatus').textContent=data.message||'';return}if(data&&data.type==='breakthrough-team-result'){let node=$('breakthroughTeamSubmitStatus');if(!node){node=document.createElement('p');node.id='breakthroughTeamSubmitStatus';$('breakthroughCaptainSummary')?.append(node)}node.textContent=data.message||'';return}
   if(data&&data.type==='captain-vote-result'){$('captainVoteMessage').textContent=data.message;return}
   if(data&&data.type==='captain-submit-result'){$('captainSubmitStatus').textContent=data.message;return}
   if(data&&data.type==='response-received'){$('sendStatus').textContent=data.message||'Đã ghi nhận.';return}
