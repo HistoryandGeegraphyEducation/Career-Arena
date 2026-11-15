@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
     if (!rubric) return json({ error: "Không tìm thấy barem cho tình huống." }, 400);
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) return json({ error: "Máy chủ chưa được cấu hình dịch vụ AI. Bài làm chưa bị mất; vui lòng báo giáo viên." }, 503);
-    const latest = await db.from("breakthrough_submissions").select("version").eq("room_code", roomCode).eq("team_index", team).order("version", { ascending: false }).limit(1).maybeSingle();
+    const confirmed = await db.from("breakthrough_submissions").select("id").eq("room_code", roomCode).eq("team_index", team).eq("status", "confirmed").limit(1).maybeSingle();
+    if (confirmed.data) return json({ error: "Giáo viên đã xác nhận điểm cho đội. Bài làm đã được chốt." }, 409);\n    const latest = await db.from("breakthrough_submissions").select("version").eq("room_code", roomCode).eq("team_index", team).order("version", { ascending: false }).limit(1).maybeSingle();
     const version = (latest.data?.version || 0) + 1;
     const prompt = [
       "Bạn là trợ lý đánh giá học tập cho học sinh THCS. Đánh giá bài làm của MỘT ĐỘI theo đúng barem JSON được cung cấp.",
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
     const total = criteria.reduce((sum, item) => sum + item.score, 0);
     const needsReview = !!aiData.needs_teacher_review || returned.length !== rubric.criteria.length || criteria.some(x => x.evidence === "" && x.score > 0);
     const record = { room_code: roomCode, team_index: team, scenario_index: scenario, version, captain_peer: captain, answer, criteria, total_score: total, feedback: { overall_message: safeText(aiData.overall_message, 1000), needs_teacher_review: needsReview }, status: needsReview ? "manual_review" : "assessed" };
-    const { data: saved, error: saveError } = await db.from("breakthrough_submissions").insert(record).select("id,version,criteria,total_score,feedback,status,created_at").single();
+    const { data: saved, error: saveError } = await db.from("breakthrough_submissions").insert(record).select("id,team_index,scenario_index,version,answer,criteria,total_score,feedback,status,created_at").single();
     if (saveError) return json({ error: "Không lưu được kết quả đánh giá. Bài làm vẫn có thể gửi lại." }, 500);
     return json({ result: saved });
   }
