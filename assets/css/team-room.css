@@ -244,3 +244,16 @@
 .breakthrough-choice-icon{box-shadow:inset 0 1px rgba(255,255,255,.12),0 5px 14px rgba(0,0,0,.2)}
 .breakthrough-selection-area,.breakthrough-captain-summary{background:linear-gradient(145deg,rgba(8,36,75,.97),rgba(3,17,43,.98));border-color:rgba(98,188,242,.4);box-shadow:0 14px 30px rgba(0,0,0,.2)}
 @media(max-width:620px){.breakthrough-choice-card{min-height:68px}.breakthrough-scenario{padding-top:18px}}
+
+/* Bứt Phá team assessment */
+.breakthrough-member-note{width:100%;min-height:82px;margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(5,16,40,.62);color:#f5f7ff}
+.breakthrough-captain-summary .field{display:grid;gap:8px;margin-top:18px}
+.breakthrough-captain-summary textarea{width:100%;min-height:150px;padding:14px;border:1px solid rgba(255,224,139,.35);border-radius:12px;background:rgba(5,16,40,.72);color:#fff;resize:vertical}
+.breakthrough-student-feedback,.breakthrough-assessment-card{margin-top:16px;padding:16px;border:1px solid rgba(95,190,155,.3);border-radius:14px;background:rgba(9,40,43,.34)}
+.breakthrough-assessment-card{background:rgba(9,20,46,.7);border-color:rgba(255,224,139,.22);margin-bottom:14px}
+.breakthrough-assessment-card h4{margin:0 0 8px;color:#ffe08b}
+.breakthrough-assessment-card section{padding:10px 0;border-top:1px solid rgba(255,255,255,.09)}
+.breakthrough-assessment-card section p,.breakthrough-student-feedback p{line-height:1.55}
+.breakthrough-assessment-actions{display:grid;grid-template-columns:110px minmax(150px,1fr) auto;gap:8px;margin-top:14px}
+.breakthrough-assessment-actions input{min-width:0;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:#0b1732;color:#fff}
+@media(max-width:640px){.breakthrough-assessment-actions{grid-template-columns:1fr}.breakthrough-assessment-actions button{width:100%}}
