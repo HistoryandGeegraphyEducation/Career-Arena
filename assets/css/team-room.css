@@ -185,3 +185,8 @@
 .boot-review-panel{display:grid;gap:10px;margin:16px 0;padding:16px;border:1px solid #d4ad4f;border-radius:14px;background:#14294a;color:#fff}.boot-review-panel h3{margin:0;color:#ffdf86}.boot-review-panel p{margin:0;overflow-wrap:anywhere}
 .round-achievement-filter{display:flex;align-items:center;gap:8px}.round-achievement-filter select{min-width:150px}
 #studentLiveBoard{margin-top:16px}
+
+.live-round-reflex{grid-template-columns:repeat(4,minmax(0,1fr))}
+.live-round-reflex>h3,.live-round-reflex>.live-board-image,.live-round-reflex>.live-board-podium{grid-column:1/-1}
+.live-round-reflex .live-board-row{text-align:center;font-weight:800}
+@media(max-width:620px){.live-round-reflex{grid-template-columns:repeat(2,minmax(0,1fr))}}
