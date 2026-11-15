@@ -259,7 +259,7 @@ function renderLiveBoard(data,rootId){
  }else{
   roundRows(data,round).forEach((r,i)=>{const row=document.createElement('div');row.className='live-board-row';row.textContent=(i+1)+'. '+r.team+' · '+r.points+' điểm';root.append(row)});
  }
- if(data.seconds===0||data.linkRound?.selectionClosed||data.breakthroughRound?.closed||round==='Phản xạ'&&data.reflex?.active===false&&(data.reflexRoundResults?.length||0)>=12){
+ if(data.seconds===0&&round!=='Bứt phá'||data.linkRound?.selectionClosed||round==='Phản xạ'&&data.reflex?.active===false&&(data.reflexRoundResults?.length||0)>=12){
   const podium=document.createElement('section');podium.className='live-board-podium';const h=document.createElement('h3');h.textContent='BẢNG VINH DANH';podium.append(h);roundRows(data,round).slice(0,3).forEach((r,i)=>{const p=document.createElement('p');p.textContent=['🥇','🥈','🥉'][i]+' '+r.team+' · '+r.points+' điểm';podium.append(p)});root.append(podium)
  }
 }
