@@ -203,3 +203,15 @@
 .live-board-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:10px;border-bottom:1px solid #37658f}
 .live-board-header h3{font-size:clamp(1.1rem,2.4vw,1.65rem);text-transform:uppercase}
 .live-board-clock{flex:0 0 auto;color:#ffdf86;font-size:clamp(1.4rem,3vw,2rem);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+
+/* Celebration shown only on the elected captain's device */
+.captain-election-celebration{position:fixed;inset:0;z-index:1200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;pointer-events:none;background:radial-gradient(circle at center,rgba(42,75,130,.94),rgba(4,14,38,.96) 72%);color:#fff;animation:captainCelebrationFade 5s ease both}
+.captain-election-celebration h2{margin:12px 0;color:#ffe08b;font-size:clamp(1.7rem,6vw,3.4rem);text-shadow:0 0 20px rgba(255,211,107,.8)}
+.captain-election-celebration p{max-width:34rem;color:#fff;font-weight:700}
+.captain-celebration-burst{font-size:clamp(5rem,18vw,10rem);line-height:1;color:#ffd36b;text-shadow:0 0 12px #fff,0 0 35px #ffbd42;animation:captainBurst .65s ease-in-out infinite alternate}
+@keyframes captainBurst{to{transform:scale(1.22) rotate(18deg);filter:hue-rotate(35deg)}}
+@keyframes captainCelebrationFade{0%,78%{opacity:1}100%{opacity:0}}
+.live-captain-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:4px 0 10px;padding:12px;border:1px solid #d8b65e;border-radius:14px;background:linear-gradient(145deg,#302b1b,#071b43)}
+.live-captain-roster h3{grid-column:1/-1;margin:0 0 4px;color:#ffe08b}
+.live-captain-roster p{margin:0;padding:9px 11px;border:1px solid rgba(255,224,139,.35);border-radius:9px;color:#fff;background:rgba(4,18,48,.65)}
+@media(max-width:600px){.live-captain-roster{grid-template-columns:1fr}}
