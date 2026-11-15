@@ -151,7 +151,23 @@ const linkExtra={
 "Nhà hải dương học":["Tàu nghiên cứu; cảm biến biển; thiết bị đo nhiệt độ và độ mặn; máy lấy mẫu nước; GPS; phần mềm phân tích.","Phòng thí nghiệm, trung tâm nghiên cứu hoặc tàu ngoài biển; có đợt khảo sát dài ngày."],
 "Kỹ sư IoT":["Cảm biến; vi điều khiển; bo mạch điện tử; máy tính; đồng hồ vạn năng; máy hiện sóng; phần mềm lập trình.","Văn phòng kỹ thuật, phòng thí nghiệm, nhà máy hoặc nơi lắp đặt thiết bị."],
 "Phi công":["Máy bay; hệ thống điều khiển buồng lái; thiết bị định vị; vô tuyến; bản đồ hàng không; mô phỏng bay.","Buồng lái và sân bay; lịch bay theo ca, có thể bay đêm hoặc lưu trú xa nhà."],
-"Đầu bếp":["Dao; thớt; nồi; chảo; bếp; lò nướng; tủ lạnh; nhiệt kế thực phẩm; dụng cụ bảo hộ.","Bếp nhà hàng, khách sạn hoặc bếp ăn; môi trường nóng, đứng lâu, làm theo ca."]
+"Thiết kế đồ họa":["Máy tính; bảng vẽ điện tử; màn hình đồ họa; máy ảnh; phần mềm thiết kế; thiết bị in thử.","Văn phòng, studio hoặc làm việc từ xa; thường phối hợp với khách hàng và nhóm truyền thông."],
+"Đầu bếp":["Dao; thớt; nồi; chảo; bếp; lò nướng; tủ lạnh; nhiệt kế thực phẩm; dụng cụ bảo hộ.","Bếp nhà hàng, khách sạn hoặc bếp ăn; môi trường nóng, đứng lâu, làm theo ca."],
+"Kế toán":["Máy tính; máy tính cầm tay; phần mềm kế toán; bảng tính; chứng từ; hệ thống lưu trữ dữ liệu.","Văn phòng hoặc bộ phận tài chính; làm việc với chứng từ, dữ liệu và thời hạn báo cáo."],
+"Luật sư":["Bộ luật; hồ sơ vụ việc; máy tính; cơ sở dữ liệu pháp lý; công cụ soạn thảo văn bản.","Văn phòng luật, doanh nghiệp hoặc cơ quan tố tụng; bảo mật hồ sơ và có thể di chuyển gặp khách hàng."],
+"Ngư dân":["Tàu hoặc thuyền; lưới và ngư cụ; máy định vị; thiết bị liên lạc; áo phao; dụng cụ bảo quản thủy sản.","Tàu thuyền, vùng nuôi trồng hoặc ven biển; phụ thuộc thời tiết, mùa vụ và yêu cầu an toàn trên nước."],
+"Công an":["Phương tiện công vụ; thiết bị liên lạc; máy tính; phương tiện ghi nhận thông tin; trang bị bảo hộ theo nhiệm vụ.","Đơn vị công tác hoặc địa bàn được phân công; có thể trực và làm việc theo ca."],
+"Thợ điện":["Kìm cách điện; tua vít cách điện; đồng hồ vạn năng; bút thử điện; thiết bị đo; phương tiện bảo hộ.","Công trình, nhà ở, nhà máy hoặc cơ sở bảo trì; có thể làm trên cao và phải tuân thủ an toàn điện."],
+"Bác sĩ":["Ống nghe; máy đo huyết áp; nhiệt kế; thiết bị chẩn đoán; hồ sơ bệnh án; phương tiện bảo hộ y tế.","Bệnh viện, phòng khám hoặc cơ sở y tế; có thể trực đêm và tuân thủ quy trình kiểm soát nhiễm khuẩn."],
+"Kỹ sư xây dựng":["Bản vẽ kỹ thuật; máy tính; phần mềm thiết kế; thiết bị đo đạc; dụng cụ kiểm tra vật liệu; trang bị bảo hộ.","Văn phòng thiết kế và công trường; di chuyển giữa các địa điểm, chịu ảnh hưởng thời tiết và quy định an toàn."],
+"Nhân viên marketing":["Máy tính; phần mềm thiết kế; công cụ phân tích dữ liệu; nền tảng quảng cáo; thiết bị ghi hình.","Doanh nghiệp, công ty truyền thông hoặc làm từ xa; phối hợp nhiều bộ phận và theo tiến độ chiến dịch."],
+"Nông dân":["Cuốc; xẻng; máy làm đất; hệ thống tưới; dụng cụ thu hoạch; thiết bị theo dõi thời tiết.","Đồng ruộng, trang trại hoặc nhà kính; hoạt động ngoài trời, phụ thuộc mùa vụ và thời tiết."],
+"Giáo viên":["Sách giáo khoa; giáo án; bảng; máy tính; máy chiếu; học liệu số; thiết bị dạy học.","Trường học hoặc cơ sở giáo dục; giảng dạy theo thời khóa biểu, chuẩn bị bài và phối hợp với học sinh."],
+"Lập trình viên":["Máy tính; phần mềm soạn thảo mã; trình biên dịch; hệ thống quản lý phiên bản; công cụ kiểm thử.","Văn phòng hoặc làm từ xa; sử dụng máy tính thời gian dài và làm việc theo tiến độ dự án."],
+"Phi hành gia":["Bộ đồ du hành vũ trụ; hệ thống hỗ trợ sự sống; thiết bị liên lạc; bảng điều khiển; dụng cụ thí nghiệm.","Trung tâm huấn luyện và môi trường không gian có kiểm soát; yêu cầu tuyển chọn, sức khỏe và kỷ luật nghiêm ngặt."],
+"Chuyên gia nghiên cứu núi lửa":["Thiết bị đo địa chấn; máy đo khí; camera nhiệt; GPS; dụng cụ lấy mẫu đá; đồ bảo hộ.","Viện nghiên cứu, phòng thí nghiệm và khu vực thực địa; có nơi địa hình khó, khí độc hoặc nguy cơ phun trào."],
+"Hướng dẫn viên":["Micro; loa; bản đồ; thiết bị định vị; điện thoại; tài liệu thuyết minh; phương tiện liên lạc.","Điểm du lịch, phương tiện di chuyển và ngoài trời; lịch trình linh hoạt, thường phải đi lại."],
+"Nhà khảo cổ học":["Bản đồ khảo sát; GPS; máy ảnh; thước đo; bay và chổi khai quật; túi mẫu; sổ ghi chép.","Viện nghiên cứu, bảo tàng, phòng thí nghiệm và khu khai quật; thực địa kéo dài và chịu ảnh hưởng thời tiết."]
 };
 function linkP(name){const p=(window.PROFESSIONS||[]).find(x=>x.name===name)||{},x=linkExtra[name]||[];return{name,work:p.work||'',tools:x[0]||'Thiết bị và dụng cụ chuyên môn phù hợp với nghề.',skills:p.skills||'',conditions:x[1]||'Làm việc tại cơ sở chuyên môn hoặc địa điểm thực hiện nhiệm vụ.',challenges:p.challenges||''}}
 function linkParts(v){return String(v||'').split(/;|(?<=[.!?])\\s+/).map(x=>x.trim()).filter(Boolean)}
