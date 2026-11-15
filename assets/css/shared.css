@@ -35,3 +35,27 @@
   position: relative;
   z-index: 1;
 }
+
+/* Visual depth refresh: shared interface surfaces */
+:root{--depth-shadow:0 24px 60px rgba(0,0,0,.34)}
+body{background:#050d25}
+.site-bg{background:radial-gradient(ellipse at 18% 8%,rgba(36,114,190,.34),transparent 42%),radial-gradient(ellipse at 82% 72%,rgba(105,58,181,.2),transparent 40%),#070d28 url("../images/career-arena-bg-grid.svg") center/cover no-repeat}
+.site-bg:after{opacity:.3;background-image:linear-gradient(120deg,rgba(2,10,31,.55),rgba(3,13,38,.26)),url("../images/career-arena-overlay-v-shape.svg");background-size:cover}
+.topbar{background:linear-gradient(100deg,rgba(3,13,37,.94),rgba(8,31,72,.84));border-bottom-color:rgba(94,208,255,.3);box-shadow:0 10px 34px rgba(0,0,0,.22)}
+.brand-mark{border:1px solid rgba(255,255,255,.48);box-shadow:0 0 0 5px rgba(255,205,96,.08),0 9px 24px rgba(255,174,56,.28)}
+.panel{background:linear-gradient(145deg,rgba(13,54,111,.9),rgba(4,17,47,.94));border-color:rgba(103,204,255,.36);box-shadow:var(--depth-shadow),inset 0 1px rgba(255,255,255,.16);backdrop-filter:blur(18px)}
+.hero{border:1px solid rgba(117,220,255,.42);box-shadow:0 28px 80px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.2)}
+.hero:after{border-color:rgba(116,230,255,.42);filter:drop-shadow(0 0 16px rgba(39,220,255,.22))}
+.round-banner{box-shadow:0 18px 48px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.16)}
+.card{background:linear-gradient(155deg,rgba(17,65,125,.86),rgba(4,20,54,.96));border:1px solid rgba(108,198,255,.3);box-shadow:0 16px 34px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.13)}
+.card:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,#61e7ff,rgba(255,211,106,.8),transparent);opacity:.72}
+.card:hover{transform:translateY(-7px) scale(1.012);box-shadow:0 22px 42px rgba(0,0,0,.32),0 0 24px rgba(39,220,255,.1)}
+.btn{position:relative;overflow:hidden;box-shadow:0 9px 24px rgba(255,177,58,.24),inset 0 1px rgba(255,255,255,.48)}
+.btn:active{transform:translateY(1px) scale(.985)}
+.btn.secondary{box-shadow:0 9px 24px rgba(0,126,230,.22),inset 0 1px rgba(255,255,255,.18)}
+.btn.ghost{backdrop-filter:blur(8px)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #ffe08b;outline-offset:3px}
+.field input,.field textarea,.field select{background:linear-gradient(145deg,rgba(3,18,47,.96),rgba(8,37,78,.92));border-color:rgba(99,183,236,.52);box-shadow:inset 0 2px 8px rgba(0,0,0,.18)}
+.question,.team{background:linear-gradient(145deg,rgba(10,43,88,.96),rgba(4,19,49,.98));border-color:rgba(91,177,234,.4);box-shadow:0 12px 28px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.08)}
+.pill{border:1px solid rgba(104,222,255,.28);box-shadow:inset 0 1px rgba(255,255,255,.1)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
