@@ -524,3 +524,5 @@ body[data-round-theme="reflex"] .round-banner,body[data-round-theme="link"] .rou
 .avatar-choice.selected{border-color:#ffd36b;background:#4b3a14;box-shadow:0 0 0 2px rgba(255,211,107,.18)}
 .student-identity-avatar{border:1px solid rgba(255,255,255,.25);font-size:1.45rem;cursor:pointer}
 @media(max-width:420px){.avatar-picker{grid-template-columns:repeat(6,minmax(34px,1fr))}.student-team-avatar{flex-basis:46px;width:46px;height:46px}}
+
+.member-list-avatar{display:inline-grid;place-items:center;width:32px;height:32px;margin-right:8px;border-radius:10px;background:#173b69;font-size:1.2rem;vertical-align:middle}.profile-feedback{margin:0;color:#aeeaff;font-size:.78rem;min-height:1em}
