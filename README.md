@@ -18,7 +18,7 @@ Website trò chơi học tập theo tài liệu Word CHỦ ĐỀ 8: Khám phá t
 Mở `index.html` hoặc bật GitHub Pages từ Settings → Pages → Deploy from a branch → `main` / root.
 
 ## Lưu ý chức năng
-Điểm số hiện được điều phối thủ công bởi giáo viên; dữ liệu nhập được giữ trong phiên trang (chưa có máy chủ hoặc đồng bộ nhiều thiết bị). Âm thanh hiệu ứng được tổng hợp bằng Web Audio API và chỉ phát sau thao tác người dùng.
+Điểm các vòng ngoài Bứt Phá vẫn do giáo viên điều phối trong phiên phòng. Riêng vòng Bứt Phá, từng phiên bản bài làm được lưu vào Supabase; AI chỉ đưa điểm đề xuất theo barem cố định, còn giáo viên điều chỉnh điểm từng tiêu chí và xác nhận điểm cuối. Cần áp dụng migration và triển khai Edge Function theo `supabase/README-BREAKTHROUGH.md` trước khi dùng chức năng này.
 
 
 ## Phòng chơi theo đội qua mã QR
@@ -27,4 +27,4 @@ Mở `index.html` hoặc bật GitHub Pages từ Settings → Pages → Deploy f
 - Giáo viên theo dõi thành viên, câu trả lời và bảng điểm; cộng 1, 2 hoặc 5 điểm cho từng lượt gửi. Mỗi lượt chỉ được chấm một lần.
 - Phòng sử dụng PeerJS để kết nối trực tiếp giữa các trình duyệt. Thiết bị giáo viên phải giữ trang phòng mở và có kết nối Internet trong suốt hoạt động. Nếu tải lại hoặc đóng trang, phòng cũ kết thúc và cần tạo mã mới.
 - Mã QR là đường dẫn tham gia phòng. Chỉ chia sẻ mã cho người trong lớp; hiện chưa có mật khẩu hoặc xác thực tài khoản.
-- Các thư viện PeerJS và QRCode được tải từ CDN nên thiết bị cần truy cập Internet. GitHub Pages chỉ lưu trữ giao diện, không lưu lịch sử phòng hoặc điểm sau khi đóng phòng.
+- Các thư viện PeerJS và QRCode được tải từ CDN nên thiết bị cần truy cập Internet. GitHub Pages chỉ lưu trữ giao diện. Supabase lưu các phiên bản bài làm, phản hồi và điểm xác nhận của vòng Bứt Phá sau khi đã triển khai cấu hình; trạng thái phòng và bảng điểm tổng của các vòng khác vẫn nằm trong phiên trình duyệt.
