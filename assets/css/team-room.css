@@ -176,7 +176,7 @@
 
 /* Persistent shared live board and per-round achievement panels */
 .live-board-controls{display:flex;justify-content:flex-end;margin:10px 0}
-.live-round-board{display:grid;gap:10px;margin:14px 0;padding:16px;border:1px solid #4a94d0;border-radius:16px;background:linear-gradient(145deg,#071d49,#06142f);color:#fff}
+.live-round-board{position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:1fr;gap:12px;width:min(960px,calc(100vw - 28px));max-height:min(90dvh,900px);overflow:auto;margin:0;padding:clamp(14px,2.5vw,24px);border:1px solid #58dafa;border-radius:20px;background:linear-gradient(145deg,#071d49,#111746 58%,#301347);color:#fff;box-shadow:0 0 0 100vmax rgba(2,7,24,.82),0 20px 70px rgba(0,0,0,.65),0 0 34px rgba(55,208,255,.2);}
 .live-round-board h3{margin:0;color:#ffdf86;letter-spacing:.04em}
 .live-board-row{padding:11px 13px;border:1px solid #2e5f8b;border-radius:11px;background:#0b2a53}
 .live-board-row strong{display:block;color:#ffdf86}.live-board-row p{margin:6px 0;overflow-wrap:anywhere}.live-board-row small{color:#b8d7f4}
@@ -200,9 +200,11 @@
 .live-profession-row{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:8px}.live-profession-row .profession-card-visual{grid-row:span 2;min-height:72px;height:72px}.live-profession-row .profession-card-visual img{min-height:72px;height:72px}.live-profession-row .profession-card-visual span{font-size:2.2rem}
 @media(max-width:620px){.profession-card-layout{grid-template-columns:1fr}.profession-card-visual{min-height:150px}.profession-card-visual img{min-height:150px;height:180px}.live-profession-row{grid-template-columns:60px minmax(0,1fr)}}
 
-.live-board-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:10px;border-bottom:1px solid #37658f}
-.live-board-header h3{font-size:clamp(1.1rem,2.4vw,1.65rem);text-transform:uppercase}
-.live-board-clock{flex:0 0 auto;color:#ffdf86;font-size:clamp(1.4rem,3vw,2rem);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.live-board-header{display:grid;grid-template-columns:minmax(125px,.8fr) minmax(180px,1.2fr) auto;align-items:start;gap:12px;padding-bottom:12px;border-bottom:1px solid #37658f}
+.live-board-heading{display:grid;gap:5px;justify-items:start}.live-board-header h3{font-size:clamp(1.05rem,2.4vw,1.55rem);text-transform:uppercase}.live-board-clock{color:#ffdf86;font-size:clamp(1.45rem,3vw,2rem);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.live-board-mini-ranking{display:grid;grid-template-columns:1fr 1fr;gap:5px;min-width:0}.live-board-mini-row{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:3px 6px;padding:6px 8px;border:1px solid rgba(104,218,255,.32);border-radius:8px;background:rgba(5,24,57,.78);font-size:.76rem}.live-board-mini-row b{grid-row:span 2;color:#ffdf86}.live-board-mini-row span{overflow-wrap:anywhere;font-weight:700}.live-board-mini-row strong{font-size:.7rem;color:#9fe8ff}.live-board-close{border:1px solid #70dfff;border-radius:9px;padding:8px 11px;background:linear-gradient(135deg,#0879b9,#6338b5);color:#fff;font-weight:900;cursor:pointer}
+.live-board-image{width:100%;max-width:100%;max-height:62dvh;min-height:280px;object-fit:contain;margin:0 auto;border-radius:14px;background:#071329}
+@media(max-width:620px){.live-board-header{grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr) auto;gap:7px}.live-board-mini-ranking{grid-template-columns:1fr 1fr}.live-board-mini-row{padding:5px;font-size:.67rem;grid-template-columns:17px minmax(0,1fr)}.live-board-close{padding:7px 8px;font-size:.7rem}.live-board-image{min-height:220px;max-height:58dvh}}
 
 /* Celebration shown only on the elected captain's device */
 .captain-election-celebration{position:fixed;inset:0;z-index:1200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;pointer-events:none;background:radial-gradient(circle at center,rgba(42,75,130,.94),rgba(4,14,38,.96) 72%);color:#fff;animation:captainCelebrationFade 5s ease both}
