@@ -175,7 +175,7 @@
 @media(max-width:620px){.link-member-boxes{grid-template-columns:1fr}.link-drop-box:last-child{grid-column:auto}.link-draggable-card{width:100%}}
 
 /* Persistent shared live board and per-round achievement panels */
-.live-board-controls{display:flex;justify-content:flex-end;margin:10px 0}
+.live-board-reopen{position:fixed;z-index:1100;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;padding:10px 14px;border:1px solid rgba(112,223,255,.8);border-radius:999px;background:linear-gradient(135deg,#0879b9,#6338b5);color:#fff;font-weight:900;font-size:.76rem;letter-spacing:.03em;box-shadow:0 8px 26px rgba(0,0,0,.38),0 0 18px rgba(73,220,255,.2);cursor:pointer}.live-board-reopen.hidden{display:none!important}
 .live-round-board{position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:1fr;gap:12px;width:min(960px,calc(100vw - 28px));max-height:min(90dvh,900px);overflow:auto;margin:0;padding:clamp(14px,2.5vw,24px);border:1px solid #58dafa;border-radius:20px;background:linear-gradient(145deg,#071d49,#111746 58%,#301347);color:#fff;box-shadow:0 0 0 100vmax rgba(2,7,24,.82),0 20px 70px rgba(0,0,0,.65),0 0 34px rgba(55,208,255,.2);}
 .live-round-board h3{margin:0;color:#ffdf86;letter-spacing:.04em}
 .live-board-row{padding:11px 13px;border:1px solid #2e5f8b;border-radius:11px;background:#0b2a53}
@@ -506,3 +506,6 @@ body[data-round-theme="reflex"] .round-banner,body[data-round-theme="link"] .rou
 .breakthrough-criterion-score input:disabled{opacity:.72}
 .breakthrough-teacher-note{display:block;width:100%;margin:12px 0;padding:10px 12px;border:1px solid rgba(113,220,255,.3);border-radius:9px;background:#07172f;color:#fff}
 .breakthrough-assessment-card>button{margin-top:10px}
+
+/* The coordinator board follows the celebration screen; reopening stays in a floating corner control. */
+.live-round-board.hidden{display:none!important}
