@@ -111,7 +111,7 @@ async function assessStoredSubmission(db: any, submission: Record<string, any>, 
     && new Set(ids).size === expectedIds.length
     && expectedIds.every(id => ids.includes(id));
 
-  let needsReview = aiData.needs_teacher_review === true || !structureValid;
+  let needsReview = aiData.needs_teacher_review !== false || !structureValid;
   const criteria = rubric.criteria.map(criterion => {
     const item = returned.find((entry: any) => entry?.id === criterion.id) || {};
     const rawScore = item.score;
