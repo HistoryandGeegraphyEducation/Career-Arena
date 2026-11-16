@@ -594,6 +594,7 @@ function renderBreakthroughAssessments(){
  });
 }
 function startTeacher(){
+ restoreTeamProfiles();updateTeams();
  if(!getSupabaseClient()){$('connectionStatus').textContent='Thiếu cấu hình Supabase Realtime';return}
  $('createRoom').disabled=true;$('connectionStatus').textContent='Đang mở các kênh kết nối…';
  const studentCode=makeRoomCode(),teacherCode=makeRoomCode();breakthroughRoomCode=studentCode;breakthroughTeacherToken=makeSecretToken();breakthroughHistory=[[],[],[],[]];breakthroughAssessments=[null,null,null,null];breakthroughDeadline=0;breakthroughFinalAssignments={};breakthroughSyncQueue=Promise.resolve();breakthroughConfirmed.clear();
