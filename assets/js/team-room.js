@@ -131,9 +131,9 @@ function renderPending(){
   team.members.forEach(member=>{
    const row=document.createElement('article');row.className='pending-card';
    const info=document.createElement('div');info.className='pending-info';
-   const avatar=document.createElement('span');avatar.className='member-list-avatar';avatar.textContent=member.avatar||'🙂';const name=document.createElement('strong');name.textContent=member.name;
-   const detail=document.createElement('span');detail.textContent=team.avatar+' '+team.name+' · Đã vào phòng';
-   info.append(avatar,name,detail);row.append(info);root.append(row);
+   const avatar=document.createElement('span');avatar.className='member-list-avatar frame-'+(member.frame||'basic');avatar.textContent=member.avatar||'🙂';const name=document.createElement('strong');name.textContent=member.name;
+   const detail=document.createElement('span');detail.textContent=team.avatar+' '+team.name+' · '+(Number(member.xp)||0)+' XP';const progress=document.createElement('small');progress.className='member-progress-line';progress.textContent=memberBadges(member).join(' · ');
+   info.append(avatar,name,detail,progress);row.append(info);root.append(row);
   });
  });
 }
@@ -636,7 +636,7 @@ function startStudent(){
   if(data&&data.type==='joined'){
    if(joinTimer){clearTimeout(joinTimer);joinTimer=null}
    joining=false;selfName=String(data.name||$('studentName').value||'Học sinh');
-   selfTeamIndex=Number(data.team);
+   selfTeamIndex=Number(data.team);const savedProfile=readMemberProfile(selfName);send(connection,{type:'member-profile',avatar:savedProfile.avatar,frame:savedProfile.frame,xp:savedProfile.xp});
    hide('joinForm');show('studentPlay');
    $('studentTeamName').textContent=data.state?.teams?.[data.team]?.name||$('studentTeam').selectedOptions[0].textContent;
    $('studentStatus').textContent='Đã vào phòng';$('studentStatus').style.background='#0c633d';
