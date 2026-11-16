@@ -632,6 +632,9 @@ function startStudent(){
   if(data&&data.type==='join-error'){failJoin(data.message||'Không thể tham gia phòng.');return}
   renderStudentState(data);
  };
+ $('memberAvatarButton').addEventListener('click',()=>{$('memberAvatarPicker').classList.toggle('hidden');if(!$('memberAvatarPicker').classList.contains('hidden'))renderAvatarPicker('memberAvatarPicker',$('memberAvatarButton').textContent,avatar=>{send(connection,{type:'member-profile',avatar});$('memberAvatarButton').textContent=avatar;$('memberAvatarPicker').classList.add('hidden')})});
+ $('teamAvatarToggle').addEventListener('click',()=>{$('teamAvatarPicker').classList.toggle('hidden');if(!$('teamAvatarPicker').classList.contains('hidden'))renderAvatarPicker('teamAvatarPicker',$('studentTeamAvatar').textContent,avatar=>{send(connection,{type:'team-customize',name:$('teamNameEdit').value,avatar});$('studentTeamAvatar').textContent=avatar;$('teamAvatarPicker').classList.add('hidden')})});
+ $('saveTeamCustomization').addEventListener('click',()=>send(connection,{type:'team-customize',name:$('teamNameEdit').value,avatar:$('studentTeamAvatar').textContent}));
  $('joinRoom').addEventListener('click',()=>{
   unlockReflexNoticeAudio();
   if(joining)return;
