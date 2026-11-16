@@ -526,3 +526,29 @@ body[data-round-theme="reflex"] .round-banner,body[data-round-theme="link"] .rou
 @media(max-width:420px){.avatar-picker{grid-template-columns:repeat(6,minmax(34px,1fr))}.student-team-avatar{flex-basis:46px;width:46px;height:46px}}
 
 .member-list-avatar{display:inline-grid;place-items:center;width:32px;height:32px;margin-right:8px;border-radius:10px;background:#173b69;font-size:1.2rem;vertical-align:middle}.profile-feedback{margin:0;color:#aeeaff;font-size:.78rem;min-height:1em}
+
+/* Identity progression: team colours, achievement badges and member avatar frames */
+.student-identity-avatar{position:relative;width:54px;height:54px;flex:0 0 54px;border-radius:16px;background:linear-gradient(145deg,#173c70,#4b3478);transition:box-shadow .2s,border-color .2s}
+.student-identity-avatar.frame-neon{border:2px solid #53e9ff;box-shadow:0 0 0 3px rgba(83,233,255,.18),0 0 20px rgba(83,233,255,.45)}
+.student-identity-avatar.frame-gold{border:2px solid #ffd36b;box-shadow:0 0 0 3px rgba(255,211,107,.2),0 0 20px rgba(255,211,107,.4)}
+.student-identity-avatar.frame-legend{border:2px solid #d99bff;box-shadow:0 0 0 3px rgba(217,155,255,.2),0 0 25px rgba(217,155,255,.5),inset 0 0 14px rgba(255,255,255,.15)}
+.member-frame-toggle{margin:6px 0}
+.frame-picker{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 12px;padding:9px;border:1px solid rgba(112,210,255,.25);border-radius:12px;background:rgba(4,18,48,.8)}
+.frame-picker.hidden{display:none!important}
+.frame-choice{padding:8px 10px;border:1px solid rgba(125,197,232,.25);border-radius:9px;background:#102d57;color:#fff;font-size:.75rem;font-weight:800}
+.frame-choice:disabled{opacity:.38;cursor:not-allowed}
+.frame-choice.selected{border-color:#ffd36b;background:#4b3a14}
+.frame-choice.frame-neon.selected{border-color:#53e9ff;box-shadow:0 0 12px rgba(83,233,255,.3)}
+.frame-choice.frame-gold.selected{border-color:#ffd36b;box-shadow:0 0 12px rgba(255,211,107,.3)}
+.frame-choice.frame-legend.selected{border-color:#d99bff;box-shadow:0 0 12px rgba(217,155,255,.3)}
+.team-slogan{margin:5px 0;color:#cceaff;font-size:.82rem;font-style:italic}
+.team-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.team-achievement-badge,.member-achievement-badge{display:inline-flex;padding:4px 7px;border:1px solid rgba(255,211,107,.35);border-radius:999px;background:rgba(121,86,24,.2);color:#ffe2a1;font-size:.65rem;font-weight:850}
+.team-captain-tools .field{margin:0}
+.team-captain-tools .field input,.team-captain-tools .field select{width:100%;padding:9px 10px;border:1px solid rgba(255,218,120,.3);border-radius:9px;background:#071b3c;color:#fff}
+.score-card{border-left:4px solid var(--team-accent,#43d9ff)}
+.team-brand-line{display:flex;align-items:center;gap:8px}
+.team-brand-line .team-symbol{font-size:1.35rem}
+.team-brand-line .team-swatch{width:9px;height:26px;border-radius:8px;background:var(--team-accent,#43d9ff)}
+.pending-info .member-progress-line{color:#bfe9ff;font-size:.72rem}
+@media(max-width:420px){.student-identity-avatar{width:48px;height:48px;flex-basis:48px}}
