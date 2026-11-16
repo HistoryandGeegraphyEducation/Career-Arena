@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#061b48">
   <title>Phòng chơi trực tuyến | Đấu trường nghề nghiệp</title>
   <link rel="stylesheet" href="assets/css/shared.css?v=career-arena-responsive-v20261115">
-  <link rel="stylesheet" href="assets/css/team-room.css?v=career-arena-liveboard-modal-v20261116">
+  <link rel="stylesheet" href="assets/css/team-room.css?v=career-arena-avatar-customization-v20261116">
 </head>
 <body>
   <div class="site-bg"></div>
@@ -28,7 +28,7 @@
       <div id="roomShare" class="room-access-codes hidden"><article class="access-code-card student-access-code"><span class="eyebrow">MÃ PHÒNG HỌC SINH</span><strong id="roomCode">--------</strong></article><article class="access-code-card teacher-access-code"><span class="eyebrow">MÃ TRUY CẬP GIÁO VIÊN</span><strong id="teacherRoomCodeDisplay">--------</strong></article></div><p id="controllerLinkStatus" class="controller-link-status">Điện thoại điều khiển: chưa kết nối</p>
       <div class="section-head"><h2>Thiết lập đội</h2><span class="muted">Tối đa 4 đội</span></div>
       <div class="team-config">
-        <label>Đội 1<input id="teamName0" value="Đội 1" maxlength="24"></label><label>Đội 2<input id="teamName1" value="Đội 2" maxlength="24"></label><label>Đội 3<input id="teamName2" value="Đội 3" maxlength="24"></label><label>Đội 4<input id="teamName3" value="Đội 4" maxlength="24"></label>
+        <label>Đội 1<input id="teamName0" value="Đội 1" maxlength="24" readonly aria-label="Tên đội do đội trưởng đặt"></label><label>Đội 2<input id="teamName1" value="Đội 2" maxlength="24" readonly aria-label="Tên đội do đội trưởng đặt"></label><label>Đội 3<input id="teamName2" value="Đội 3" maxlength="24" readonly aria-label="Tên đội do đội trưởng đặt"></label><label>Đội 4<input id="teamName3" value="Đội 4" maxlength="24" readonly aria-label="Tên đội do đội trưởng đặt"></label>
       </div>
       <div class="section-head"><h2>Điều khiển hoạt động</h2></div>
       <div class="controls-grid">
@@ -50,8 +50,8 @@
         <button id="joinRoom" class="btn">VÀO PHÒNG</button><p id="joinError" class="error-text" role="alert"></p>
       </div>
       <div id="studentPlay" class="hidden">
-        <div id="studentIdentityBar" class="student-identity-bar"><span class="student-identity-avatar">HS</span><div class="student-identity-copy"><small>THÀNH VIÊN</small><strong id="studentIdentityName">Học sinh</strong></div><span id="studentRoleBadge" class="student-role-badge">THÀNH VIÊN</span></div>
-        <div class="student-summary"><div><span class="eyebrow">ĐỘI CỦA BẠN</span><h2 id="studentTeamName">Đội 1</h2></div><div><span class="eyebrow">ĐIỂM HIỆN TẠI</span><div id="studentScore" class="score">0</div></div></div>
+        <div id="studentIdentityBar" class="student-identity-bar"><button id="memberAvatarButton" class="student-identity-avatar" type="button" aria-label="Chọn avatar cá nhân">🙂</button><div class="student-identity-copy"><small>THÀNH VIÊN</small><strong id="studentIdentityName">Học sinh</strong></div><span id="studentRoleBadge" class="student-role-badge">THÀNH VIÊN</span></div><div id="memberAvatarPicker" class="avatar-picker hidden" aria-label="Chọn avatar cá nhân"></div>
+        <div class="student-summary"><div class="student-team-brand"><button id="studentTeamAvatarButton" class="student-team-avatar hidden" type="button" aria-label="Chọn biểu tượng đội">🌟</button><div><span class="eyebrow">ĐỘI CỦA BẠN</span><h2 id="studentTeamName">Đội 1</h2><div id="teamCaptainTools" class="team-captain-tools hidden"><div class="team-name-editor"><input id="teamNameEdit" maxlength="24" placeholder="Tên đội mới"><button id="saveTeamCustomization" class="btn secondary" type="button">LƯU TÊN ĐỘI</button></div><button id="teamAvatarToggle" class="btn ghost" type="button">ĐỔI BIỂU TƯỢNG ĐỘI</button><div id="teamAvatarPicker" class="avatar-picker hidden" aria-label="Chọn biểu tượng đội"></div></div></div></div><div><span class="eyebrow">ĐIỂM HIỆN TẠI</span><div id="studentScore" class="score">0</div></div></div>
         <button id="careerSkillToggle" class="career-skill-toggle hidden" type="button" aria-expanded="false" aria-controls="careerSkillShop" title="Cửa hàng điểm nghề nghiệp">✦</button><section id="careerSkillShop" class="career-skill-shop hidden">
           <div class="skill-shop-heading"><div><span class="eyebrow">CAREER POINTS</span><h2>CỬA HÀNG ĐIỂM NGHỀ NGHIỆP</h2></div><div class="skill-wallet"><span>ĐIỂM NGHỀ NGHIỆP</span><strong id="careerPointBalance">0</strong></div></div>
           <div class="skill-shop-group">
@@ -97,6 +97,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="assets/js/supabase-config.js?v=20261114a"></script><script src="assets/js/professions.js"></script><script src="assets/js/scenarios.js?v=career-arena-scenarios-bp-v20261115"></script>
   <script src="assets/js/shared.js?v=career-arena-round-audio-v20261116"></script>
-  <script src="assets/js/team-room.js?v=career-arena-celebration-board-sequence-v20261116"></script>
+  <script src="assets/js/team-room.js?v=career-arena-avatar-customization-v20261116"></script>
 </body>
 </html>
